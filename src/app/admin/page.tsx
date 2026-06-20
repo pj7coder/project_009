@@ -858,36 +858,6 @@ export default function Admin() {
         </div>
       </div>
 
-      <style jsx global>{`
-        @media (max-width: 768px) {
-          .ops-bar {
-            flex-direction: column !important;
-            align-items: stretch !important;
-          }
-          .ops-bar div {
-            width: 100%;
-          }
-          .ops-bar button {
-            flex-grow: 1;
-          }
-          .form-row {
-            grid-template-columns: 1fr !important;
-            gap: 1.2rem !important;
-          }
-          .form-three-row {
-            grid-template-columns: 1fr !important;
-            gap: 1.2rem !important;
-          }
-          .admin-item-row {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 1rem;
-          }
-          .admin-item-row div {
-            width: 100%;
-          }
-        }
-      `}</style>
     </div>
   );
 }

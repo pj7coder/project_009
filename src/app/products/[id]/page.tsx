@@ -274,22 +274,6 @@ export default function ProductDetail() {
         </div>
       </div>
 
-      <style jsx global>{`
-        @media (max-width: 768px) {
-          .showcase-grid {
-            grid-template-columns: 1fr !important;
-            gap: 2rem !important;
-          }
-          .spec-table {
-            grid-template-columns: 1fr !important;
-          }
-          .inquiry-grid {
-            grid-template-columns: 1fr !important;
-            gap: 3rem !important;
-            margin-top: 3rem;
-          }
-        }
-      `}</style>
     </div>
   );
 }

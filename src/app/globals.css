@@ -358,3 +358,94 @@ button, input, textarea, select {
     transform: translateY(0);
   }
 }
+
+/* ---- Spin animation ---- */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Footer link hover ---- */
+.footer-link:hover {
+  color: var(--gold) !important;
+  padding-left: 3px;
+}
+
+/* ---- Project card hover zoom ---- */
+.project-card:hover .project-img {
+  transform: scale(1.05);
+}
+
+/* ---- Desktop: show nav, hide mobile toggle ---- */
+@media (min-width: 769px) {
+  .desktop-nav {
+    display: flex !important;
+  }
+  .desktop-cta {
+    display: inline-flex !important;
+  }
+  .mobile-toggle {
+    display: none !important;
+  }
+  .mobile-drawer {
+    display: none !important;
+  }
+}
+
+/* ---- Mobile Breakpoints ---- */
+@media (max-width: 768px) {
+  .hero-ctas {
+    flex-direction: column;
+    width: 100%;
+  }
+  .hero-ctas a {
+    width: 100%;
+  }
+  .market-badges {
+    justify-content: center;
+  }
+  .showcase-grid {
+    grid-template-columns: 1fr !important;
+    gap: 2rem !important;
+  }
+  .spec-table {
+    grid-template-columns: 1fr !important;
+  }
+  .inquiry-grid {
+    grid-template-columns: 1fr !important;
+    gap: 3rem !important;
+    margin-top: 3rem;
+  }
+  .contact-grid {
+    grid-template-columns: 1fr !important;
+    gap: 3rem !important;
+  }
+  .form-row {
+    grid-template-columns: 1fr !important;
+    gap: 0.5rem !important;
+  }
+  .form-three-row {
+    grid-template-columns: 1fr !important;
+    gap: 1.2rem !important;
+  }
+  .ops-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .admin-item-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem;
+  }
+  .project-row {
+    grid-template-columns: 1fr !important;
+    gap: 2rem !important;
+  }
+  .project-text-col {
+    order: 1 !important;
+  }
+  .project-image-col {
+    order: 2 !important;
+    height: 280px !important;
+  }
+}

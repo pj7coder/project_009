@@ -242,14 +242,6 @@ export default function InquiryForm({ productName }: InquiryFormProps) {
         </div>
       )}
 
-      <style jsx global>{`
-        @media (max-width: 600px) {
-          .form-row {
-            grid-template-columns: 1fr !important;
-            gap: 0 !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }

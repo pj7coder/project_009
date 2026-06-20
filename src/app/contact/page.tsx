@@ -370,22 +370,6 @@ export default function Contact() {
         </div>
       </div>
 
-      <style jsx global>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @media (max-width: 768px) {
-          .contact-grid {
-            grid-template-columns: 1fr !important;
-            gap: 3rem !important;
-          }
-          .form-row {
-            grid-template-columns: 1fr !important;
-            gap: 0 !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }

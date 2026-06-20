@@ -183,12 +183,6 @@ export default function Footer() {
         </div>
       </div>
 
-      <style jsx>{`
-        .footer-link:hover {
-          color: var(--gold) !important;
-          padding-left: 3px;
-        }
-      `}</style>
     </footer>
   );
 }

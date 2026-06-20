@@ -244,34 +244,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Responsive Inline Styles fallback (next config compiles media queries in css, we add custom style block here or handle via page.module.css. We will add a small inline media query style tag to make things beautiful) */}
-      <style jsx global>{`
-        @media (min-width: 769px) {
-          .desktop-nav {
-            display: flex !important;
-          }
-          .desktop-cta {
-            display: inline-flex !important;
-          }
-          .mobile-toggle {
-            display: none !important;
-          }
-          .mobile-drawer {
-            display: none !important;
-          }
-        }
-        @media (max-width: 768px) {
-          .mobile-drawer {
-            display: flex !important;
-          }
-        }
-        .mobile-drawer {
-          transform: translateX(100%);
-        }
-        .mobile-drawer.open {
-          transform: translateX(0) !important;
-        }
-      `}</style>
     </>
   );
 }

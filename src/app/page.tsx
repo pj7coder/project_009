@@ -526,23 +526,7 @@ export default function Home() {
         </div>
       </section>
 
-      <style jsx global>{`
-        .project-card:hover .project-img {
-          transform: scale(1.05);
-        }
-        @media (max-width: 768px) {
-          .hero-ctas {
-            flex-direction: column;
-            width: 100%;
-          }
-          .hero-ctas a {
-            width: 100%;
-          }
-          .market-badges {
-            justify-content: center;
-          }
-        }
-      `}</style>
+
     </div>
   );
 }
