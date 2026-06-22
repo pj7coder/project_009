@@ -128,7 +128,7 @@ export default function ProductDetail() {
                 disabled={!canScrollLeft}
                 aria-label="Previous images"
                 style={{
-                  width: '32px',
+                  width: '40px',
                   flexShrink: 0,
                   display: 'flex',
                   alignItems: 'center',
@@ -195,7 +195,7 @@ export default function ProductDetail() {
                 disabled={!canScrollRight}
                 aria-label="Next images"
                 style={{
-                  width: '32px',
+                  width: '40px',
                   flexShrink: 0,
                   display: 'flex',
                   alignItems: 'center',

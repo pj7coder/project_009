@@ -323,7 +323,7 @@ export default function Home() {
         padding: '5rem 0'
       }}>
         <div className="container">
-          <div style={{
+          <div className="stats-grid" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
             gap: '3rem',
@@ -331,7 +331,7 @@ export default function Home() {
           }}>
             {stats.map((stat, idx) => (
               <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <span style={{
+                <span className="stat-value" style={{
                   fontSize: '3.2rem',
                   fontFamily: 'var(--font-serif)',
                   fontWeight: 700,

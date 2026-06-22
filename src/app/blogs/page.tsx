@@ -163,13 +163,13 @@ export default function Blogs() {
             <button
               onClick={() => setSelectedBlog(null)}
               style={{
-                position: 'sticky',
+                position: 'absolute',
                 top: '1rem',
-                left: 'calc(100% - 3rem)',
-                width: '32px',
-                height: '32px',
+                right: '1rem',
+                width: '40px',
+                height: '40px',
                 borderRadius: '50%',
-                background: 'rgba(28,27,24,0.9)',
+                background: 'rgba(28,27,24,0.85)',
                 border: '1px solid var(--border-color)',
                 color: 'var(--gold-light)',
                 cursor: 'pointer',
@@ -181,11 +181,11 @@ export default function Blogs() {
               }}
               aria-label="Close article"
             >
-              <X size={18} />
+              <X size={20} />
             </button>
 
             {/* Article Image Banner */}
-            <div style={{ height: '300px', overflow: 'hidden', marginTop: '-32px' }}>
+            <div style={{ height: '300px', overflow: 'hidden' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={selectedBlog.image}
@@ -195,7 +195,7 @@ export default function Blogs() {
             </div>
 
             {/* Article content info */}
-            <div style={{ padding: '2.5rem' }}>
+            <div style={{ padding: '2rem 1.5rem' }}>
               {/* Metadata */}
               <div style={{
                 display: 'flex',
