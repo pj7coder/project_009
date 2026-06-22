@@ -1,23 +1,26 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product, Project, Blog, INITIAL_PRODUCTS, INITIAL_PROJECTS, INITIAL_BLOGS, CONTACT_INFO } from '../data/stoneData';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { Product, Project, Blog, CONTACT_INFO } from '../data/stoneData';
+
+type ContactInfo = typeof CONTACT_INFO;
 
 interface StoneContextType {
   products: Product[];
   projects: Project[];
   blogs: Blog[];
-  addProduct: (product: Omit<Product, 'id'> & { id?: string }) => void;
-  editProduct: (id: string, updated: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
-  addProject: (project: Omit<Project, 'id'> & { id?: string }) => void;
-  editProject: (id: string, updated: Partial<Project>) => void;
-  deleteProject: (id: string) => void;
-  addBlog: (blog: Omit<Blog, 'id'> & { id?: string }) => void;
-  editBlog: (id: string, updated: Partial<Blog>) => void;
-  deleteBlog: (id: string) => void;
-  contactInfo: typeof CONTACT_INFO;
-  updateContactInfo: (info: typeof CONTACT_INFO) => void;
+  contactInfo: ContactInfo;
+  loading: boolean;
+  addProduct: (product: Omit<Product, 'id'> & { id?: string }) => Promise<void>;
+  editProduct: (id: string, updated: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  addProject: (project: Omit<Project, 'id'> & { id?: string }) => Promise<void>;
+  editProject: (id: string, updated: Partial<Project>) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
+  addBlog: (blog: Omit<Blog, 'id'> & { id?: string }) => Promise<void>;
+  editBlog: (id: string, updated: Partial<Blog>) => Promise<void>;
+  deleteBlog: (id: string) => Promise<void>;
+  updateContactInfo: (info: ContactInfo) => Promise<void>;
 }
 
 const StoneContext = createContext<StoneContextType | undefined>(undefined);
@@ -26,126 +29,132 @@ export function StoneProvider({ children }: { children: React.ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [contactInfo, setContactInfo] = useState<typeof CONTACT_INFO>(CONTACT_INFO);
-  const [initialized, setInitialized] = useState(false);
+  const [contactInfo, setContactInfo] = useState<ContactInfo>(CONTACT_INFO);
+  const [loading, setLoading] = useState(true);
 
+  // ─── Initial data fetch from DB ──────────────────────────────────────────────
   useEffect(() => {
-    // Only access localStorage in client browser
-    const storedProducts = localStorage.getItem('pj_products');
-    const storedProjects = localStorage.getItem('pj_projects');
-    const storedBlogs = localStorage.getItem('pj_blogs');
-    const storedContact = localStorage.getItem('pj_contact_info');
+    async function loadAll() {
+      try {
+        const [pRes, prRes, bRes, cRes] = await Promise.all([
+          fetch('/api/products'),
+          fetch('/api/projects'),
+          fetch('/api/blogs'),
+          fetch('/api/contact'),
+        ]);
 
-    if (storedProducts) {
-      setProducts(JSON.parse(storedProducts));
-    } else {
-      setProducts(INITIAL_PRODUCTS);
-      localStorage.setItem('pj_products', JSON.stringify(INITIAL_PRODUCTS));
+        if (pRes.ok) setProducts(await pRes.json());
+        if (prRes.ok) setProjects(await prRes.json());
+        if (bRes.ok) setBlogs(await bRes.json());
+        if (cRes.ok) setContactInfo(await cRes.json());
+      } catch (err) {
+        console.error('[StoneContext] Failed to load data from DB:', err);
+      } finally {
+        setLoading(false);
+      }
     }
 
-    if (storedProjects) {
-      setProjects(JSON.parse(storedProjects));
-    } else {
-      setProjects(INITIAL_PROJECTS);
-      localStorage.setItem('pj_projects', JSON.stringify(INITIAL_PROJECTS));
-    }
-
-    if (storedBlogs) {
-      setBlogs(JSON.parse(storedBlogs));
-    } else {
-      setBlogs(INITIAL_BLOGS);
-      localStorage.setItem('pj_blogs', JSON.stringify(INITIAL_BLOGS));
-    }
-
-    if (storedContact) {
-      setContactInfo(JSON.parse(storedContact));
-    } else {
-      setContactInfo(CONTACT_INFO);
-      localStorage.setItem('pj_contact_info', JSON.stringify(CONTACT_INFO));
-    }
-
-    setInitialized(true);
+    loadAll();
   }, []);
 
-  // Sync to local storage on changes (only after initial load)
-  useEffect(() => {
-    if (initialized) {
-      localStorage.setItem('pj_products', JSON.stringify(products));
-    }
-  }, [products, initialized]);
+  // ─── Products CRUD ────────────────────────────────────────────────────────────
+  const addProduct = useCallback(async (newProduct: Omit<Product, 'id'> & { id?: string }) => {
+    const res = await fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newProduct),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const created: Product = await res.json();
+    setProducts((prev) => [...prev, created]);
+  }, []);
 
-  useEffect(() => {
-    if (initialized) {
-      localStorage.setItem('pj_projects', JSON.stringify(projects));
-    }
-  }, [projects, initialized]);
+  const editProduct = useCallback(async (id: string, updated: Partial<Product>) => {
+    const res = await fetch(`/api/products/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const saved: Product = await res.json();
+    setProducts((prev) => prev.map((p) => (p.id === id ? saved : p)));
+  }, []);
 
-  useEffect(() => {
-    if (initialized) {
-      localStorage.setItem('pj_blogs', JSON.stringify(blogs));
-    }
-  }, [blogs, initialized]);
-
-  useEffect(() => {
-    if (initialized) {
-      localStorage.setItem('pj_contact_info', JSON.stringify(contactInfo));
-    }
-  }, [contactInfo, initialized]);
-
-  const updateContactInfo = (info: typeof CONTACT_INFO) => {
-    setContactInfo(info);
-  };
-
-  // CRUD actions for Products
-  const addProduct = (newProduct: Omit<Product, 'id'> & { id?: string }) => {
-    const id = newProduct.id || newProduct.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const productWithId: Product = { ...newProduct, id };
-    setProducts((prev) => [...prev, productWithId]);
-  };
-
-  const editProduct = (id: string, updated: Partial<Product>) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updated } : p))
-    );
-  };
-
-  const deleteProduct = (id: string) => {
+  const deleteProduct = useCallback(async (id: string) => {
+    const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
     setProducts((prev) => prev.filter((p) => p.id !== id));
-  };
+  }, []);
 
-  // CRUD actions for Projects
-  const addProject = (newProject: Omit<Project, 'id'> & { id?: string }) => {
-    const id = newProject.id || newProject.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const projectWithId: Project = { ...newProject, id };
-    setProjects((prev) => [...prev, projectWithId]);
-  };
+  // ─── Projects CRUD ────────────────────────────────────────────────────────────
+  const addProject = useCallback(async (newProject: Omit<Project, 'id'> & { id?: string }) => {
+    const res = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newProject),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const created: Project = await res.json();
+    setProjects((prev) => [...prev, created]);
+  }, []);
 
-  const editProject = (id: string, updated: Partial<Project>) => {
-    setProjects((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updated } : p))
-    );
-  };
+  const editProject = useCallback(async (id: string, updated: Partial<Project>) => {
+    const res = await fetch(`/api/projects/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const saved: Project = await res.json();
+    setProjects((prev) => prev.map((p) => (p.id === id ? saved : p)));
+  }, []);
 
-  const deleteProject = (id: string) => {
+  const deleteProject = useCallback(async (id: string) => {
+    const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
     setProjects((prev) => prev.filter((p) => p.id !== id));
-  };
+  }, []);
 
-  // CRUD actions for Blogs
-  const addBlog = (newBlog: Omit<Blog, 'id'> & { id?: string }) => {
-    const id = newBlog.id || newBlog.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const blogWithId: Blog = { ...newBlog, id };
-    setBlogs((prev) => [...prev, blogWithId]);
-  };
+  // ─── Blogs CRUD ───────────────────────────────────────────────────────────────
+  const addBlog = useCallback(async (newBlog: Omit<Blog, 'id'> & { id?: string }) => {
+    const res = await fetch('/api/blogs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newBlog),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const created: Blog = await res.json();
+    setBlogs((prev) => [...prev, created]);
+  }, []);
 
-  const editBlog = (id: string, updated: Partial<Blog>) => {
-    setBlogs((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, ...updated } : b))
-    );
-  };
+  const editBlog = useCallback(async (id: string, updated: Partial<Blog>) => {
+    const res = await fetch(`/api/blogs/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const saved: Blog = await res.json();
+    setBlogs((prev) => prev.map((b) => (b.id === id ? saved : b)));
+  }, []);
 
-  const deleteBlog = (id: string) => {
+  const deleteBlog = useCallback(async (id: string) => {
+    const res = await fetch(`/api/blogs/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
     setBlogs((prev) => prev.filter((b) => b.id !== id));
-  };
+  }, []);
+
+  // ─── Contact Info Update ──────────────────────────────────────────────────────
+  const updateContactInfo = useCallback(async (info: ContactInfo) => {
+    const res = await fetch('/api/contact', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(info),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const saved: ContactInfo = await res.json();
+    setContactInfo(saved);
+  }, []);
 
   return (
     <StoneContext.Provider
@@ -153,6 +162,8 @@ export function StoneProvider({ children }: { children: React.ReactNode }) {
         products,
         projects,
         blogs,
+        contactInfo,
+        loading,
         addProduct,
         editProduct,
         deleteProduct,
@@ -162,7 +173,6 @@ export function StoneProvider({ children }: { children: React.ReactNode }) {
         addBlog,
         editBlog,
         deleteBlog,
-        contactInfo,
         updateContactInfo,
       }}
     >

@@ -3,13 +3,13 @@
 import React, { useState } from 'react';
 import { useStoneContext } from '@/context/StoneContext';
 import { Product, Project, Blog } from '@/data/stoneData';
-import { Plus, Edit2, Trash2, Save, X, Download, Upload, Info, Image } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Download, Upload, Info, Loader2 } from 'lucide-react';
 
 type ActiveTab = 'products' | 'projects' | 'blogs' | 'contact';
 
 export default function Admin() {
   const {
-    products, projects, blogs, contactInfo, updateContactInfo,
+    products, projects, blogs, contactInfo, updateContactInfo, loading,
     addProduct, editProduct, deleteProduct,
     addProject, editProject, deleteProject,
     addBlog, editBlog, deleteBlog
@@ -199,9 +199,10 @@ export default function Admin() {
   };
 
   // Submit Handler
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    try {
     if (activeTab === 'products') {
       const formattedProduct = {
         name: productForm.name,
@@ -217,10 +218,10 @@ export default function Admin() {
       };
 
       if (editId) {
-        editProduct(editId, formattedProduct);
+        await editProduct(editId, formattedProduct);
         triggerNotification('Product updated successfully!');
       } else {
-        addProduct(formattedProduct);
+        await addProduct(formattedProduct);
         triggerNotification('New product added successfully!');
       }
     } else if (activeTab === 'projects') {
@@ -235,10 +236,10 @@ export default function Admin() {
       };
 
       if (editId) {
-        editProject(editId, formattedProject);
+        await editProject(editId, formattedProject);
         triggerNotification('Project updated successfully!');
       } else {
-        addProject(formattedProject);
+        await addProject(formattedProject);
         triggerNotification('New project added successfully!');
       }
     } else if (activeTab === 'blogs') {
@@ -253,12 +254,16 @@ export default function Admin() {
       };
 
       if (editId) {
-        editBlog(editId, formattedBlog);
+        await editBlog(editId, formattedBlog);
         triggerNotification('Blog article updated successfully!');
       } else {
-        addBlog(formattedBlog);
+        await addBlog(formattedBlog);
         triggerNotification('New blog article added successfully!');
       }
+    }
+    } catch (err) {
+      console.error('[Admin] Form submit error:', err);
+      triggerNotification('Error saving data. Please try again.');
     }
 
     setShowForm(false);
@@ -266,40 +271,55 @@ export default function Admin() {
   };
 
   // Delete Handler
-  const handleDelete = (id: string, name: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if (confirm(`Are you sure you want to delete "${name}"?`)) {
-      if (activeTab === 'products') {
-        deleteProduct(id);
-        triggerNotification('Product deleted successfully.');
-      } else if (activeTab === 'projects') {
-        deleteProject(id);
-        triggerNotification('Project deleted successfully.');
-      } else if (activeTab === 'blogs') {
-        deleteBlog(id);
-        triggerNotification('Blog article deleted.');
+      try {
+        if (activeTab === 'products') {
+          await deleteProduct(id);
+          triggerNotification('Product deleted successfully.');
+        } else if (activeTab === 'projects') {
+          await deleteProject(id);
+          triggerNotification('Project deleted successfully.');
+        } else if (activeTab === 'blogs') {
+          await deleteBlog(id);
+          triggerNotification('Blog article deleted.');
+        }
+      } catch (err) {
+        console.error('[Admin] Delete error:', err);
+        triggerNotification('Error deleting item. Please try again.');
       }
     }
   };
 
-  const handleDeleteProductCategory = (catName: string) => {
+  const handleDeleteProductCategory = async (catName: string) => {
     if (window.confirm(`Are you sure you want to delete the category "${catName}"? All products in this category will be reset to "Uncategorized".`)) {
-      products.forEach(p => {
-        if (p.category === catName) {
-          editProduct(p.id, { category: 'Uncategorized' });
-        }
-      });
-      triggerNotification(`Category "${catName}" deleted successfully!`);
+      try {
+        await Promise.all(
+          products
+            .filter(p => p.category === catName)
+            .map(p => editProduct(p.id, { category: 'Uncategorized' }))
+        );
+        triggerNotification(`Category "${catName}" deleted successfully!`);
+      } catch (err) {
+        console.error('[Admin] Delete category error:', err);
+        triggerNotification('Error deleting category. Please try again.');
+      }
     }
   };
 
-  const handleDeleteProjectCategory = (catName: string) => {
+  const handleDeleteProjectCategory = async (catName: string) => {
     if (window.confirm(`Are you sure you want to delete the category "${catName}"? All projects in this category will be reset to "Uncategorized".`)) {
-      projects.forEach(p => {
-        if (p.category === catName) {
-          editProject(p.id, { category: 'Uncategorized' });
-        }
-      });
-      triggerNotification(`Category "${catName}" deleted successfully!`);
+      try {
+        await Promise.all(
+          projects
+            .filter(p => p.category === catName)
+            .map(p => editProject(p.id, { category: 'Uncategorized' }))
+        );
+        triggerNotification(`Category "${catName}" deleted successfully!`);
+      } catch (err) {
+        console.error('[Admin] Delete category error:', err);
+        triggerNotification('Error deleting category. Please try again.');
+      }
     }
   };
 
@@ -329,31 +349,60 @@ export default function Admin() {
     triggerNotification('Backup downloaded successfully!');
   };
 
-  // Import Data Action
-  const handleImportData = (e: React.FormEvent) => {
+  // Import Data Action — sends to MongoDB via API
+  const handleImportData = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const parsed = JSON.parse(importText);
-      
+
+      const promises: Promise<Response>[] = [];
+
       if (parsed.products && Array.isArray(parsed.products)) {
-        localStorage.setItem('pj_products', JSON.stringify(parsed.products));
+        parsed.products.forEach((p: any) => {
+          promises.push(fetch(`/api/products/${p.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) }));
+        });
       }
       if (parsed.projects && Array.isArray(parsed.projects)) {
-        localStorage.setItem('pj_projects', JSON.stringify(parsed.projects));
+        parsed.projects.forEach((p: any) => {
+          promises.push(fetch(`/api/projects/${p.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) }));
+        });
       }
       if (parsed.blogs && Array.isArray(parsed.blogs)) {
-        localStorage.setItem('pj_blogs', JSON.stringify(parsed.blogs));
+        parsed.blogs.forEach((b: any) => {
+          promises.push(fetch(`/api/blogs/${b.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }));
+        });
       }
       if (parsed.contactInfo) {
-        localStorage.setItem('pj_contact_info', JSON.stringify(parsed.contactInfo));
+        promises.push(fetch('/api/contact', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(parsed.contactInfo) }));
       }
 
+      await Promise.all(promises);
       triggerNotification('Inventory imported successfully! Reloading...');
       setTimeout(() => window.location.reload(), 1500);
     } catch (err) {
-      alert('Invalid JSON file format. Check the backup formatting.');
+      alert('Import failed. Check the JSON format and try again.');
     }
   };
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '60vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '1.5rem',
+        color: 'var(--text-secondary)'
+      }}>
+        <Loader2 size={48} style={{ color: 'var(--gold)', animation: 'spin 1s linear infinite' }} />
+        <p style={{ fontSize: '1rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+          Connecting to database...
+        </p>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="container fade-in" style={{ padding: '4rem 2rem 6rem 2rem' }}>
@@ -1072,17 +1121,22 @@ export default function Admin() {
           <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', fontFamily: 'var(--font-serif)', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.8rem' }}>
             Manage Contact Details & Sourcing Coordinates
           </h3>
-          <form onSubmit={(e) => {
+          <form onSubmit={async (e) => {
             e.preventDefault();
-            const markets = contactForm.targetMarkets.split(',').map(m => m.trim()).filter(Boolean);
-            updateContactInfo({
-              email: contactForm.email,
-              phone: contactForm.phone,
-              whatsapp: contactForm.whatsapp,
-              address: contactForm.address,
-              targetMarkets: markets
-            });
-            triggerNotification('Contact details updated successfully!');
+            try {
+              const markets = contactForm.targetMarkets.split(',').map(m => m.trim()).filter(Boolean);
+              await updateContactInfo({
+                email: contactForm.email,
+                phone: contactForm.phone,
+                whatsapp: contactForm.whatsapp,
+                address: contactForm.address,
+                targetMarkets: markets
+              });
+              triggerNotification('Contact details updated successfully!');
+            } catch (err) {
+              console.error('[Admin] Contact update error:', err);
+              triggerNotification('Error updating contact details. Please try again.');
+            }
           }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }} className="form-row">
