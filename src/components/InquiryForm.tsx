@@ -2,13 +2,14 @@
 
 import React, { useState } from 'react';
 import { Send, CheckCircle, MessageSquare } from 'lucide-react';
-import { CONTACT_INFO } from '../data/stoneData';
+import { useStoneContext } from '../context/StoneContext';
 
 interface InquiryFormProps {
   productName: string;
 }
 
 export default function InquiryForm({ productName }: InquiryFormProps) {
+  const { contactInfo } = useStoneContext();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -46,7 +47,7 @@ export default function InquiryForm({ productName }: InquiryFormProps) {
 *Message:* ${formData.message}`;
 
       const encodedText = encodeURIComponent(waText);
-      const whatsappUrl = `https://wa.me/${CONTACT_INFO.whatsapp}?text=${encodedText}`;
+      const whatsappUrl = `https://wa.me/${contactInfo.whatsapp}?text=${encodedText}`;
 
       // Open WhatsApp in a new tab
       window.open(whatsappUrl, '_blank');
@@ -220,7 +221,7 @@ export default function InquiryForm({ productName }: InquiryFormProps) {
             lineHeight: '1.6',
             maxWidth: '400px'
           }}>
-            Your request for <strong>{productName}</strong> has been logged. An email copy has been dispatched to <strong>{CONTACT_INFO.email}</strong>, and your WhatsApp chat redirection is active.
+            Your request for <strong>{productName}</strong> has been logged. An email copy has been dispatched to <strong>{contactInfo.email}</strong>, and your WhatsApp chat redirection is active.
           </p>
           <button
             onClick={() => {

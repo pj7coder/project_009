@@ -3,9 +3,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { Mail, Phone, MapPin, Send, MessageSquare } from 'lucide-react';
-import { CONTACT_INFO } from '../data/stoneData';
+import { useStoneContext } from '../context/StoneContext';
 
 export default function Footer() {
+  const { contactInfo } = useStoneContext();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -48,7 +49,7 @@ export default function Footer() {
               We extract, refine, and export premium-grade Quartzite, Marble, and Granite to global standards. Serving architects, designers, and developers worldwide.
             </p>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              {CONTACT_INFO.targetMarkets.map((market) => (
+              {contactInfo.targetMarkets.map((market) => (
                 <span
                   key={market}
                   style={{
@@ -108,19 +109,19 @@ export default function Footer() {
               <li style={{ display: 'flex', gap: '0.8rem', alignItems: 'flex-start' }}>
                 <MapPin size={18} style={{ color: 'var(--gold)', flexShrink: 0, marginTop: '3px' }} />
                 <span style={{ fontSize: '0.95rem', lineHeight: '1.5' }}>
-                  {CONTACT_INFO.address}
+                  {contactInfo.address}
                 </span>
               </li>
               <li style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
                 <Mail size={18} style={{ color: 'var(--gold)', flexShrink: 0 }} />
-                <a href={`mailto:${CONTACT_INFO.email}`} style={{ fontSize: '0.95rem' }} className="footer-link">
-                  {CONTACT_INFO.email}
+                <a href={`mailto:${contactInfo.email}`} style={{ fontSize: '0.95rem' }} className="footer-link">
+                  {contactInfo.email}
                 </a>
               </li>
               <li style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
                 <Phone size={18} style={{ color: 'var(--gold)', flexShrink: 0 }} />
-                <a href={`tel:${CONTACT_INFO.phone}`} style={{ fontSize: '0.95rem' }} className="footer-link">
-                  {CONTACT_INFO.phone}
+                <a href={`tel:${contactInfo.phone}`} style={{ fontSize: '0.95rem' }} className="footer-link">
+                  {contactInfo.phone}
                 </a>
               </li>
             </ul>
@@ -142,7 +143,7 @@ export default function Footer() {
               Have an urgent requirement or custom project specification? Talk to our export desk directly.
             </p>
             <a
-              href={`https://wa.me/${CONTACT_INFO.whatsapp}?text=Hello,%20I%20am%20interested%20in%20importing%20premium%20stones.`}
+              href={`https://wa.me/${contactInfo.whatsapp}?text=Hello,%20I%20am%20interested%20in%20importing%20premium%20stones.`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-primary"

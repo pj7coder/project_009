@@ -4,10 +4,9 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useStoneContext } from '@/context/StoneContext';
 import { ArrowRight, ShieldCheck, Globe, Award, Sparkles, MessageSquare } from 'lucide-react';
-import { CONTACT_INFO } from '@/data/stoneData';
 
 export default function Home() {
-  const { products, projects } = useStoneContext();
+  const { products, projects, contactInfo } = useStoneContext();
   const [activeCategory, setActiveCategory] = useState<'All' | 'Quartzite' | 'Marble' | 'Granite'>('All');
 
   // Filter products based on selected category
@@ -510,7 +509,7 @@ export default function Home() {
               Request Free Consultation
             </Link>
             <a
-              href={`https://wa.me/${CONTACT_INFO.whatsapp}?text=Hello,%20I%20would%20like%20to%20request%20a%20stone%20export%20catalogue.`}
+              href={`https://wa.me/${contactInfo.whatsapp}?text=Hello,%20I%20would%20like%20to%20request%20a%20stone%20export%20catalogue.`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-secondary"
@@ -521,7 +520,7 @@ export default function Home() {
             </a>
           </div>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-            Average reply time: Under 15 minutes. Or email directly to <strong>{CONTACT_INFO.email}</strong>.
+            Average reply time: Under 15 minutes. Or email directly to <strong>{contactInfo.email}</strong>.
           </span>
         </div>
       </section>

@@ -3,7 +3,6 @@
 import React from 'react';
 import Link from 'next/link';
 import { ShieldCheck, Anchor, Compass, Heart, Users, Check } from 'lucide-react';
-import { CONTACT_INFO } from '@/data/stoneData';
 
 export default function About() {
   const steps = [

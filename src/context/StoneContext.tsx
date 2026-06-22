@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product, Project, Blog, INITIAL_PRODUCTS, INITIAL_PROJECTS, INITIAL_BLOGS } from '../data/stoneData';
+import { Product, Project, Blog, INITIAL_PRODUCTS, INITIAL_PROJECTS, INITIAL_BLOGS, CONTACT_INFO } from '../data/stoneData';
 
 interface StoneContextType {
   products: Product[];
@@ -16,6 +16,8 @@ interface StoneContextType {
   addBlog: (blog: Omit<Blog, 'id'> & { id?: string }) => void;
   editBlog: (id: string, updated: Partial<Blog>) => void;
   deleteBlog: (id: string) => void;
+  contactInfo: typeof CONTACT_INFO;
+  updateContactInfo: (info: typeof CONTACT_INFO) => void;
 }
 
 const StoneContext = createContext<StoneContextType | undefined>(undefined);
@@ -24,6 +26,7 @@ export function StoneProvider({ children }: { children: React.ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [contactInfo, setContactInfo] = useState<typeof CONTACT_INFO>(CONTACT_INFO);
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
@@ -31,6 +34,7 @@ export function StoneProvider({ children }: { children: React.ReactNode }) {
     const storedProducts = localStorage.getItem('pj_products');
     const storedProjects = localStorage.getItem('pj_projects');
     const storedBlogs = localStorage.getItem('pj_blogs');
+    const storedContact = localStorage.getItem('pj_contact_info');
 
     if (storedProducts) {
       setProducts(JSON.parse(storedProducts));
@@ -51,6 +55,13 @@ export function StoneProvider({ children }: { children: React.ReactNode }) {
     } else {
       setBlogs(INITIAL_BLOGS);
       localStorage.setItem('pj_blogs', JSON.stringify(INITIAL_BLOGS));
+    }
+
+    if (storedContact) {
+      setContactInfo(JSON.parse(storedContact));
+    } else {
+      setContactInfo(CONTACT_INFO);
+      localStorage.setItem('pj_contact_info', JSON.stringify(CONTACT_INFO));
     }
 
     setInitialized(true);
@@ -74,6 +85,16 @@ export function StoneProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('pj_blogs', JSON.stringify(blogs));
     }
   }, [blogs, initialized]);
+
+  useEffect(() => {
+    if (initialized) {
+      localStorage.setItem('pj_contact_info', JSON.stringify(contactInfo));
+    }
+  }, [contactInfo, initialized]);
+
+  const updateContactInfo = (info: typeof CONTACT_INFO) => {
+    setContactInfo(info);
+  };
 
   // CRUD actions for Products
   const addProduct = (newProduct: Omit<Product, 'id'> & { id?: string }) => {
@@ -141,6 +162,8 @@ export function StoneProvider({ children }: { children: React.ReactNode }) {
         addBlog,
         editBlog,
         deleteBlog,
+        contactInfo,
+        updateContactInfo,
       }}
     >
       {children}

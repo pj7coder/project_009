@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Globe, CheckCircle, MessageSquare } from 'lucide-react';
-import { CONTACT_INFO } from '@/data/stoneData';
+import { useStoneContext } from '@/context/StoneContext';
 
 export default function Contact() {
+  const { contactInfo } = useStoneContext();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -37,7 +38,7 @@ export default function Contact() {
 *Region:* ${formData.market}
 *Message:* ${formData.message}`;
 
-      const whatsappUrl = `https://wa.me/${CONTACT_INFO.whatsapp}?text=${encodeURIComponent(waText)}`;
+      const whatsappUrl = `https://wa.me/${contactInfo.whatsapp}?text=${encodeURIComponent(waText)}`;
       window.open(whatsappUrl, '_blank');
     }, 1200);
   };
@@ -81,7 +82,7 @@ export default function Contact() {
               <div>
                 <h4 style={{ fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Address</h4>
                 <p style={{ fontSize: '0.95rem', color: 'var(--text-primary)', margin: '0.2rem 0 0 0', lineHeight: '1.4' }}>
-                  {CONTACT_INFO.address}
+                  {contactInfo.address}
                 </p>
               </div>
             </div>
@@ -90,8 +91,8 @@ export default function Contact() {
               <Mail size={22} style={{ color: 'var(--gold)', flexShrink: 0 }} />
               <div>
                 <h4 style={{ fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Email Coordinates</h4>
-                <a href={`mailto:${CONTACT_INFO.email}`} style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                  {CONTACT_INFO.email}
+                <a href={`mailto:${contactInfo.email}`} style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                  {contactInfo.email}
                 </a>
               </div>
             </div>
@@ -100,8 +101,8 @@ export default function Contact() {
               <Phone size={22} style={{ color: 'var(--gold)', flexShrink: 0 }} />
               <div>
                 <h4 style={{ fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Phone / WhatsApp</h4>
-                <a href={`tel:${CONTACT_INFO.phone}`} style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                  {CONTACT_INFO.phone}
+                <a href={`tel:${contactInfo.phone}`} style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                  {contactInfo.phone}
                 </a>
               </div>
             </div>
@@ -218,7 +219,7 @@ export default function Contact() {
                       className="form-select"
                     >
                       <option value="">Select Region</option>
-                      {CONTACT_INFO.targetMarkets.map((m) => (
+                      {contactInfo.targetMarkets.map((m) => (
                         <option key={m} value={m}>{m}</option>
                       ))}
                       <option value="Other">Other Region</option>
@@ -288,7 +289,7 @@ export default function Contact() {
                 maxWidth: '400px',
                 margin: 0
               }}>
-                Thank you for contacting PJ Stones. A copy of this inquiry has been routed to <strong>{CONTACT_INFO.email}</strong>. Our logistics team will call or message you shortly.
+                Thank you for contacting PJ Stones. A copy of this inquiry has been routed to <strong>{contactInfo.email}</strong>. Our logistics team will call or message you shortly.
               </p>
               <button
                 onClick={() => setIsSubmitted(false)}

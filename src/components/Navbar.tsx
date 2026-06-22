@@ -4,9 +4,10 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X, Sun, Moon, PhoneCall } from 'lucide-react';
-import { CONTACT_INFO } from '../data/stoneData';
+import { useStoneContext } from '../context/StoneContext';
 
 export default function Navbar() {
+  const { contactInfo } = useStoneContext();
   const [isOpen, setIsOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const pathname = usePathname();
@@ -132,7 +133,7 @@ export default function Navbar() {
             </button>
 
             <a
-              href={`https://wa.me/${CONTACT_INFO.whatsapp}`}
+              href={`https://wa.me/${contactInfo.whatsapp}`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-primary desktop-cta"
@@ -231,7 +232,7 @@ export default function Navbar() {
             International Exports
           </p>
           <a
-            href={`https://wa.me/${CONTACT_INFO.whatsapp}`}
+            href={`https://wa.me/${contactInfo.whatsapp}`}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-primary"

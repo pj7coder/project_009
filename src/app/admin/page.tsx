@@ -5,11 +5,11 @@ import { useStoneContext } from '@/context/StoneContext';
 import { Product, Project, Blog } from '@/data/stoneData';
 import { Plus, Edit2, Trash2, Save, X, Download, Upload, Info, Image } from 'lucide-react';
 
-type ActiveTab = 'products' | 'projects' | 'blogs';
+type ActiveTab = 'products' | 'projects' | 'blogs' | 'contact';
 
 export default function Admin() {
   const {
-    products, projects, blogs,
+    products, projects, blogs, contactInfo, updateContactInfo,
     addProduct, editProduct, deleteProduct,
     addProject, editProject, deleteProject,
     addBlog, editBlog, deleteBlog
@@ -18,6 +18,27 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('products');
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+
+  // Contact Info Form State
+  const [contactForm, setContactForm] = useState({
+    email: '',
+    phone: '',
+    whatsapp: '',
+    address: '',
+    targetMarkets: ''
+  });
+
+  React.useEffect(() => {
+    if (contactInfo) {
+      setContactForm({
+        email: contactInfo.email,
+        phone: contactInfo.phone,
+        whatsapp: contactInfo.whatsapp,
+        address: contactInfo.address,
+        targetMarkets: contactInfo.targetMarkets.join(', ')
+      });
+    }
+  }, [contactInfo]);
 
   // Import / Export states
   const [importText, setImportText] = useState('');
@@ -260,6 +281,28 @@ export default function Admin() {
     }
   };
 
+  const handleDeleteProductCategory = (catName: string) => {
+    if (window.confirm(`Are you sure you want to delete the category "${catName}"? All products in this category will be reset to "Uncategorized".`)) {
+      products.forEach(p => {
+        if (p.category === catName) {
+          editProduct(p.id, { category: 'Uncategorized' });
+        }
+      });
+      triggerNotification(`Category "${catName}" deleted successfully!`);
+    }
+  };
+
+  const handleDeleteProjectCategory = (catName: string) => {
+    if (window.confirm(`Are you sure you want to delete the category "${catName}"? All projects in this category will be reset to "Uncategorized".`)) {
+      projects.forEach(p => {
+        if (p.category === catName) {
+          editProject(p.id, { category: 'Uncategorized' });
+        }
+      });
+      triggerNotification(`Category "${catName}" deleted successfully!`);
+    }
+  };
+
   // Helper for notification
   const triggerNotification = (msg: string) => {
     setFeedbackMsg(msg);
@@ -271,7 +314,8 @@ export default function Admin() {
     const fullData = {
       products,
       projects,
-      blogs
+      blogs,
+      contactInfo
     };
     const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
       JSON.stringify(fullData, null, 2)
@@ -299,6 +343,9 @@ export default function Admin() {
       }
       if (parsed.blogs && Array.isArray(parsed.blogs)) {
         localStorage.setItem('pj_blogs', JSON.stringify(parsed.blogs));
+      }
+      if (parsed.contactInfo) {
+        localStorage.setItem('pj_contact_info', JSON.stringify(parsed.contactInfo));
       }
 
       triggerNotification('Inventory imported successfully! Reloading...');
@@ -343,7 +390,7 @@ export default function Admin() {
       }} className="ops-bar">
         {/* Tab Selector */}
         <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-secondary)', padding: '0.3rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
-          {(['products', 'projects', 'blogs'] as const).map((tab) => (
+          {(['products', 'projects', 'blogs', 'contact'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => {
@@ -393,17 +440,19 @@ export default function Admin() {
           >
             <Download size={14} /> Export Backup
           </button>
-          <button
-            onClick={handleAddNew}
-            className="btn-primary"
-            style={{
-              padding: '0.6rem 1.2rem',
-              fontSize: '0.75rem',
-              gap: '0.4rem',
-            }}
-          >
-            <Plus size={14} /> Add New {activeTab.slice(0, -1)}
-          </button>
+          {activeTab !== 'contact' && (
+            <button
+              onClick={handleAddNew}
+              className="btn-primary"
+              style={{
+                padding: '0.6rem 1.2rem',
+                fontSize: '0.75rem',
+                gap: '0.4rem',
+              }}
+            >
+              <Plus size={14} /> Add New {activeTab.slice(0, -1)}
+            </button>
+          )}
         </div>
       </div>
 
@@ -833,91 +882,280 @@ export default function Admin() {
       )}
 
       {/* Items List Rendering */}
-      <div className="glass-panel" style={{ padding: '2rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
-        <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', fontFamily: 'var(--font-serif)', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.8rem' }}>
-          Active {activeTab.toUpperCase()} List ({
-            activeTab === 'products' ? products.length : activeTab === 'projects' ? projects.length : blogs.length
-          } items)
-        </h3>
+      {activeTab !== 'contact' && (
+        <div className="glass-panel" style={{ padding: '2rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+          <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', fontFamily: 'var(--font-serif)', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.8rem' }}>
+            Active {activeTab.toUpperCase()} List ({
+              activeTab === 'products' ? products.length : activeTab === 'projects' ? projects.length : blogs.length
+            } items)
+          </h3>
 
-        {/* 1. Products List */}
-        {activeTab === 'products' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {products.map((p) => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '1rem 1.5rem', borderRadius: '2px', border: '1px solid var(--border-light)', flexWrap: 'wrap', gap: '1rem' }} className="admin-item-row">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.images[0]} alt={p.name} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '2px' }} />
-                  <div>
-                    <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 600 }}>{p.name}</h4>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{p.category} — Origin: {p.origin}</span>
+          {/* 1. Products List */}
+          {activeTab === 'products' && (
+            <div>
+              {/* Category removal bar */}
+              <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginRight: '0.5rem' }}>Active Categories:</span>
+                {existingProductCategories.map((cat) => (
+                  <span
+                    key={cat}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-light)',
+                      padding: '0.3rem 0.6rem',
+                      borderRadius: '2px',
+                      fontSize: '0.8rem',
+                      color: 'var(--text-primary)'
+                    }}
+                  >
+                    {cat}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteProductCategory(cat)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '14px',
+                        height: '14px',
+                        borderRadius: '50%'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = '#ff4444'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                      title={`Delete ${cat} Category`}
+                    >
+                      <X size={10} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {products.map((p) => (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '1rem 1.5rem', borderRadius: '2px', border: '1px solid var(--border-light)', flexWrap: 'wrap', gap: '1rem' }} className="admin-item-row">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.images[0]} alt={p.name} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '2px' }} />
+                      <div>
+                        <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 600 }}>{p.name}</h4>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{p.category} — Origin: {p.origin}</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button onClick={() => handleEdit(p.id)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', display: 'inline-flex', gap: '0.3rem' }}>
+                        <Edit2 size={12} /> Edit
+                      </button>
+                      <button onClick={() => handleDelete(p.id, p.name)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', borderColor: 'rgba(255,0,0,0.3)', color: 'rgba(200,0,0,1)', display: 'inline-flex', gap: '0.3rem' }}>
+                        <Trash2 size={12} /> Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 2. Projects List */}
+          {activeTab === 'projects' && (
+            <div>
+              {/* Category removal bar */}
+              <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginRight: '0.5rem' }}>Active Categories:</span>
+                {existingProjectCategories.map((cat) => (
+                  <span
+                    key={cat}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-light)',
+                      padding: '0.3rem 0.6rem',
+                      borderRadius: '2px',
+                      fontSize: '0.8rem',
+                      color: 'var(--text-primary)'
+                    }}
+                  >
+                    {cat}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteProjectCategory(cat)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '14px',
+                        height: '14px',
+                        borderRadius: '50%'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = '#ff4444'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                      title={`Delete ${cat} Category`}
+                    >
+                      <X size={10} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {projects.map((p) => (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '1rem 1.5rem', borderRadius: '2px', border: '1px solid var(--border-light)', flexWrap: 'wrap', gap: '1rem' }} className="admin-item-row">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.images[0]} alt={p.title} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '2px' }} />
+                      <div>
+                        <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 600 }}>{p.title}</h4>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{p.category} — {p.location} ({p.year})</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button onClick={() => handleEdit(p.id)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', display: 'inline-flex', gap: '0.3rem' }}>
+                        <Edit2 size={12} /> Edit
+                      </button>
+                      <button onClick={() => handleDelete(p.id, p.title)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', borderColor: 'rgba(255,0,0,0.3)', color: 'rgba(200,0,0,1)', display: 'inline-flex', gap: '0.3rem' }}>
+                        <Trash2 size={12} /> Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 3. Blogs List */}
+          {activeTab === 'blogs' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {blogs.map((b) => (
+                <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '1rem 1.5rem', borderRadius: '2px', border: '1px solid var(--border-light)', flexWrap: 'wrap', gap: '1rem' }} className="admin-item-row">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={b.image} alt={b.title} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '2px' }} />
+                    <div>
+                      <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 600 }}>{b.title}</h4>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>By {b.author} — {b.date}</span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button onClick={() => handleEdit(b.id)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', display: 'inline-flex', gap: '0.3rem' }}>
+                      <Edit2 size={12} /> Edit
+                    </button>
+                    <button onClick={() => handleDelete(b.id, b.title)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', borderColor: 'rgba(255,0,0,0.3)', color: 'rgba(200,0,0,1)', display: 'inline-flex', gap: '0.3rem' }}>
+                      <Trash2 size={12} /> Delete
+                    </button>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => handleEdit(p.id)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', display: 'inline-flex', gap: '0.3rem' }}>
-                    <Edit2 size={12} /> Edit
-                  </button>
-                  <button onClick={() => handleDelete(p.id, p.name)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', borderColor: 'rgba(255,0,0,0.3)', color: 'rgba(200,0,0,1)', display: 'inline-flex', gap: '0.3rem' }}>
-                    <Trash2 size={12} /> Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
-        {/* 2. Projects List */}
-        {activeTab === 'projects' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {projects.map((p) => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '1rem 1.5rem', borderRadius: '2px', border: '1px solid var(--border-light)', flexWrap: 'wrap', gap: '1rem' }} className="admin-item-row">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.images[0]} alt={p.title} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '2px' }} />
-                  <div>
-                    <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 600 }}>{p.title}</h4>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{p.category} — {p.location} ({p.year})</span>
-                  </div>
+      {/* 4. Contact Details Management */}
+      {activeTab === 'contact' && (
+        <div className="glass-panel" style={{ padding: '2.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+          <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', fontFamily: 'var(--font-serif)', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.8rem' }}>
+            Manage Contact Details & Sourcing Coordinates
+          </h3>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const markets = contactForm.targetMarkets.split(',').map(m => m.trim()).filter(Boolean);
+            updateContactInfo({
+              email: contactForm.email,
+              phone: contactForm.phone,
+              whatsapp: contactForm.whatsapp,
+              address: contactForm.address,
+              targetMarkets: markets
+            });
+            triggerNotification('Contact details updated successfully!');
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }} className="form-row">
+                <div className="form-group">
+                  <label>Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    value={contactForm.email}
+                    onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                    className="form-input"
+                    placeholder="e.g. contact@pjstones.com"
+                  />
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => handleEdit(p.id)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', display: 'inline-flex', gap: '0.3rem' }}>
-                    <Edit2 size={12} /> Edit
-                  </button>
-                  <button onClick={() => handleDelete(p.id, p.title)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', borderColor: 'rgba(255,0,0,0.3)', color: 'rgba(200,0,0,1)', display: 'inline-flex', gap: '0.3rem' }}>
-                    <Trash2 size={12} /> Delete
-                  </button>
+                <div className="form-group">
+                  <label>Phone Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={contactForm.phone}
+                    onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                    className="form-input"
+                    placeholder="e.g. +91 98765 43210"
+                  />
                 </div>
               </div>
-            ))}
-          </div>
-        )}
 
-        {/* 3. Blogs List */}
-        {activeTab === 'blogs' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {blogs.map((b) => (
-              <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '1rem 1.5rem', borderRadius: '2px', border: '1px solid var(--border-light)', flexWrap: 'wrap', gap: '1rem' }} className="admin-item-row">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={b.image} alt={b.title} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '2px' }} />
-                  <div>
-                    <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 600 }}>{b.title}</h4>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>By {b.author} — {b.date}</span>
-                  </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }} className="form-row">
+                <div className="form-group">
+                  <label>WhatsApp Number (International format, numbers only) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={contactForm.whatsapp}
+                    onChange={(e) => setContactForm({ ...contactForm, whatsapp: e.target.value })}
+                    className="form-input"
+                    placeholder="e.g. 919876543210"
+                  />
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => handleEdit(b.id)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', display: 'inline-flex', gap: '0.3rem' }}>
-                    <Edit2 size={12} /> Edit
-                  </button>
-                  <button onClick={() => handleDelete(b.id, b.title)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', borderColor: 'rgba(255,0,0,0.3)', color: 'rgba(200,0,0,1)', display: 'inline-flex', gap: '0.3rem' }}>
-                    <Trash2 size={12} /> Delete
-                  </button>
+                <div className="form-group">
+                  <label>Target Markets (Comma separated) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={contactForm.targetMarkets}
+                    onChange={(e) => setContactForm({ ...contactForm, targetMarkets: e.target.value })}
+                    className="form-input"
+                    placeholder="e.g. USA, Europe, UAE, Australia"
+                  />
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+
+              <div className="form-group">
+                <label>Business Address *</label>
+                <textarea
+                  required
+                  value={contactForm.address}
+                  onChange={(e) => setContactForm({ ...contactForm, address: e.target.value })}
+                  rows={3}
+                  className="form-textarea"
+                  placeholder="e.g. 102 Stone Avenue, Jaipur, India"
+                />
+              </div>
+
+              <div style={{ marginTop: '1.5rem' }}>
+                <button type="submit" className="btn-primary" style={{ display: 'inline-flex', gap: '0.4rem', padding: '0.8rem 2rem' }}>
+                  <Save size={16} /> Save Contact Details
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Admin Panel Warning/Help Info */}
       <div className="glass-panel" style={{
