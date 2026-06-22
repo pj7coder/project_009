@@ -7,7 +7,9 @@ export async function POST(request: NextRequest) {
   try {
     // Check authentication
     const { isAuthenticated } = await import('@/lib/auth');
-    if (!(await isAuthenticated())) {
+    const authStatus = await isAuthenticated();
+    if (!authStatus) {
+      console.warn('[API/upload POST] Unauthorized request attempted');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

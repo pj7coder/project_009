@@ -9,7 +9,7 @@ const ADMIN_USER = process.env.ADMIN_USERNAME || 'PJstones';
 const ADMIN_PASS = process.env.ADMIN_PASSWORD || 'PJstones@project-009';
 
 // Get or create a persistent secret key for signing sessions
-const SECRET_KEY = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+const SECRET_KEY = process.env.SESSION_SECRET || 'PJstones-default-fallback-secret-key-2026-safe';
 
 interface SessionPayload {
   username: string;
