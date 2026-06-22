@@ -483,9 +483,6 @@ export default function Home() {
               WhatsApp Catalog
             </a>
           </div>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-            Average reply time: Under 15 minutes. Or email directly to <strong>{contactInfo.email}</strong>.
-          </span>
         </div>
       </section>
 
