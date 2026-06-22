@@ -7,6 +7,22 @@ import { Plus, Edit2, Trash2, Save, X, Download, Upload, Loader2, Lock, LogOut, 
 
 type ActiveTab = 'products' | 'projects' | 'blogs' | 'contact';
 
+function splitImageUrls(str: string): string[] {
+  if (!str) return [];
+  const parts = str.split(',');
+  const result: string[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    let part = parts[i].trim();
+    if (!part) continue;
+    if (part.startsWith('data:') && part.includes(';base64') && i + 1 < parts.length) {
+      part = part + ',' + parts[i + 1];
+      i++;
+    }
+    result.push(part);
+  }
+  return result;
+}
+
 interface ImageUploadFieldProps {
   label: string;
   images: string;
@@ -19,9 +35,7 @@ function ImageUploadField({ label, images, onChange, multiple = true }: ImageUpl
   const [activeIndex, setActiveIndex] = useState(0);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const imagesList = images
-    ? images.split(',').map((s) => s.trim()).filter(Boolean)
-    : [];
+  const imagesList = splitImageUrls(images);
 
   // Reset active index if it goes out of bounds
   React.useEffect(() => {
@@ -59,10 +73,16 @@ function ImageUploadField({ label, images, onChange, multiple = true }: ImageUpl
       });
 
       if (!validateResult.valid) {
-        alert(`Invalid Aspect Ratio: ${validateResult.ratio.toFixed(2)} (${validateResult.ratio > 1 ? 'Too narrow landscape or portrait' : 'Portrait'}).\n\nPlease upload a landscape image with an aspect ratio between 4:3 and 16:9 (ratio: 1.20 to 2.00).`);
-        setUploading(false);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-        return;
+        const proceed = window.confirm(
+          `Notice: The selected image does not have the recommended landscape aspect ratio.\n` +
+          `Current ratio: ${validateResult.ratio.toFixed(2)} (recommended: 1.20 to 2.00, landscape).\n\n` +
+          `Do you want to proceed with the upload anyway?`
+        );
+        if (!proceed) {
+          setUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
+        }
       }
 
       const formData = new FormData();
@@ -590,7 +610,7 @@ export default function Admin() {
         category: productForm.category,
         description: productForm.description,
         detailedDescription: productForm.detailedDescription,
-        images: productForm.images.split(',').map(s => s.trim()).filter(Boolean),
+        images: splitImageUrls(productForm.images),
         origin: productForm.origin,
         finishes: productForm.finishes.split(',').map(s => s.trim()).filter(Boolean),
         applications: productForm.applications.split(',').map(s => s.trim()).filter(Boolean),
@@ -611,7 +631,7 @@ export default function Admin() {
         category: projectForm.category,
         location: projectForm.location,
         description: projectForm.description,
-        images: projectForm.images.split(',').map(s => s.trim()).filter(Boolean),
+        images: splitImageUrls(projectForm.images),
         stoneUsed: projectForm.stoneUsed.split(',').map(s => s.trim()).filter(Boolean),
         year: projectForm.year
       };
@@ -917,13 +937,9 @@ export default function Admin() {
   }
 
   return (
-    <div className="container fade-in" style={{ padding: '4rem 2rem 6rem 2rem' }}>
-      {/* Header */}
-      <div className="section-header" style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1.5rem' }}>
-        <div>
-          <span className="subtitle">Management Console</span>
-          <h2 style={{ margin: 0 }}>PJ Stones Admin Panel</h2>
-        </div>
+    <div className="container fade-in" style={{ padding: '2rem 2rem 6rem 2rem' }}>
+      {/* Sign Out Action row */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
         <button
           onClick={handleLogout}
           className="btn-secondary"
@@ -933,12 +949,18 @@ export default function Admin() {
             gap: '0.5rem',
             padding: '0.6rem 1.2rem',
             fontSize: '0.85rem',
-            borderColor: 'rgba(255, 255, 255, 0.15)',
+            borderColor: 'var(--border-color)',
             borderRadius: '4px'
           }}
         >
           <LogOut size={14} /> Sign Out
         </button>
+      </div>
+
+      {/* Header */}
+      <div className="section-header" style={{ marginBottom: '3.5rem' }}>
+        <span className="subtitle">Management Console</span>
+        <h2>PJ Stones Admin Panel</h2>
       </div>
 
       {/* Info notification */}
@@ -1446,8 +1468,8 @@ export default function Admin() {
 
       {/* Items List Rendering */}
       {activeTab !== 'contact' && (
-        <div className="glass-panel" style={{ padding: '2rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
-          <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', fontFamily: 'var(--font-serif)', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.8rem' }}>
+        <div style={{ marginTop: '4rem' }}>
+          <h3 style={{ fontSize: '1.8rem', color: 'var(--text-primary)', fontFamily: 'var(--font-serif)', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.8rem' }}>
             Active {activeTab.toUpperCase()} List ({
               activeTab === 'products' ? products.length : activeTab === 'projects' ? projects.length : blogs.length
             } items)
