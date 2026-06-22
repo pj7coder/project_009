@@ -7,6 +7,185 @@ import { Plus, Edit2, Trash2, Save, X, Download, Upload, Loader2, Lock, LogOut }
 
 type ActiveTab = 'products' | 'projects' | 'blogs' | 'contact';
 
+interface ImageUploadFieldProps {
+  label: string;
+  images: string;
+  onChange: (val: string) => void;
+  multiple?: boolean;
+}
+
+function ImageUploadField({ label, images, onChange, multiple = true }: ImageUploadFieldProps) {
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const imagesList = images
+    ? images.split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    try {
+      const file = files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await res.json();
+      const uploadedUrl = data.url;
+
+      if (multiple) {
+        onChange([...imagesList, uploadedUrl].join(', '));
+      } else {
+        onChange(uploadedUrl);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    if (multiple) {
+      const updatedList = [...imagesList];
+      updatedList.splice(index, 1);
+      onChange(updatedList.join(', '));
+    } else {
+      onChange('');
+    }
+  };
+
+  return (
+    <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {label}
+      </label>
+      
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+        {imagesList.map((imgUrl, idx) => (
+          <div
+            key={idx}
+            style={{
+              position: 'relative',
+              width: '100px',
+              height: '100px',
+              borderRadius: '4px',
+              overflow: 'hidden',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-secondary)',
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imgUrl}
+              alt={`${label} preview ${idx + 1}`}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+            <button
+              type="button"
+              onClick={() => handleRemoveImage(idx)}
+              style={{
+                position: 'absolute',
+                top: '4px',
+                right: '4px',
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                background: 'rgba(239, 68, 68, 0.9)',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                fontSize: '10px',
+                fontWeight: 'bold',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                transition: 'background 0.2s ease',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#ef4444')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.9)')}
+            >
+              <X size={12} />
+            </button>
+          </div>
+        ))}
+
+        {(!multiple && imagesList.length > 0) ? null : (
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              width: '100px',
+              height: '100px',
+              border: '1px dashed var(--gold)',
+              borderRadius: '4px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'var(--gold)',
+              background: 'rgba(188, 163, 116, 0.05)',
+              transition: 'all 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(188, 163, 116, 0.1)';
+              e.currentTarget.style.borderColor = 'var(--text-primary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(188, 163, 116, 0.05)';
+              e.currentTarget.style.borderColor = 'var(--gold)';
+            }}
+          >
+            {uploading ? (
+              <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <>
+                <Upload size={24} style={{ marginBottom: '0.2rem' }} />
+                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Upload</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <details style={{ marginTop: '0.5rem', cursor: 'pointer' }}>
+        <summary style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Edit raw image URLs</summary>
+        <textarea
+          value={images}
+          onChange={(e) => onChange(e.target.value)}
+          rows={2}
+          className="form-textarea"
+          style={{ marginTop: '0.3rem', fontSize: '0.8rem', fontFamily: 'monospace' }}
+          placeholder="Comma-separated image URLs"
+        />
+      </details>
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        style={{ display: 'none' }}
+      />
+    </div>
+  );
+}
+
 export default function Admin() {
   const {
     products, projects, blogs, contactInfo, updateContactInfo, loading,
@@ -870,17 +1049,12 @@ export default function Admin() {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Slab Images (Comma separated URLs) *</label>
-                  <textarea
-                    required
-                    value={productForm.images}
-                    onChange={(e) => setProductForm({ ...productForm, images: e.target.value })}
-                    rows={2}
-                    className="form-textarea"
-                    placeholder="Provide image URLs, separate multiple with commas"
-                  />
-                </div>
+                <ImageUploadField
+                  label="Slab Images *"
+                  images={productForm.images}
+                  onChange={(val) => setProductForm({ ...productForm, images: val })}
+                  multiple={true}
+                />
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.2rem' }} className="form-three-row">
                   <div className="form-group">
@@ -1023,17 +1197,12 @@ export default function Admin() {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Project Images (Comma separated URLs) *</label>
-                  <textarea
-                    required
-                    value={projectForm.images}
-                    onChange={(e) => setProjectForm({ ...projectForm, images: e.target.value })}
-                    rows={2}
-                    className="form-textarea"
-                    placeholder="Provide image URLs, separated by commas"
-                  />
-                </div>
+                <ImageUploadField
+                  label="Project Images *"
+                  images={projectForm.images}
+                  onChange={(val) => setProjectForm({ ...projectForm, images: val })}
+                  multiple={true}
+                />
               </div>
             )}
 
@@ -1089,17 +1258,12 @@ export default function Admin() {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Header Image URL *</label>
-                  <input
-                    type="text"
-                    required
-                    value={blogForm.image}
-                    onChange={(e) => setBlogForm({ ...blogForm, image: e.target.value })}
-                    className="form-input"
-                    placeholder="Paste banner image URL"
-                  />
-                </div>
+                <ImageUploadField
+                  label="Header Image *"
+                  images={blogForm.image}
+                  onChange={(val) => setBlogForm({ ...blogForm, image: val })}
+                  multiple={false}
+                />
 
                 <div className="form-group">
                   <label>Main Body Content (Use double line breaks for paragraphs) *</label>
