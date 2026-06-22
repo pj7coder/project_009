@@ -29,16 +29,26 @@ export default function Contact() {
       setLoading(false);
       setIsSubmitted(true);
 
-      // WhatsApp format
-      const waText = `*GENERAL CONTACT REQUEST*
-------------------------------
-*Name:* ${formData.name}
-*Email:* ${formData.email}
-*Subject:* ${formData.subject}
-*Region:* ${formData.market}
-*Message:* ${formData.message}`;
+      // Clean, readable WhatsApp message (no markdown stars)
+      const lines = [
+        `Hello PJ Stones,`,
+        ``,
+        `I am reaching out regarding a general enquiry.`,
+        ``,
+        `📋 Contact Details`,
+        `   Name    : ${formData.name}`,
+        `   Email   : ${formData.email}`,
+        `   Region  : ${formData.market}`,
+        ``,
+        `📌 Subject: ${formData.subject}`,
+        ``,
+        ...(formData.message ? [`💬 Message`, `   ${formData.message}`, ``] : []),
+        `Looking forward to your response.`,
+        ``,
+        `Thank you!`,
+      ];
 
-      const whatsappUrl = `https://wa.me/${contactInfo.whatsapp}?text=${encodeURIComponent(waText)}`;
+      const whatsappUrl = `https://wa.me/${contactInfo.whatsapp}?text=${encodeURIComponent(lines.join('\n'))}`;
       window.open(whatsappUrl, '_blank');
     }, 1200);
   };

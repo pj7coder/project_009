@@ -31,25 +31,33 @@ export default function InquiryForm({ productName }: InquiryFormProps) {
     e.preventDefault();
     setLoading(true);
 
-    // Simulate sending lead email to pj7coding@gmail.com
     setTimeout(() => {
       setLoading(false);
       setIsSubmitted(true);
 
-      // Construct WhatsApp message URL
-      const waText = `*INQUIRY FOR: ${productName}*
-------------------------------
-*Buyer Name:* ${formData.name}
-*Email:* ${formData.email}
-*Phone:* ${formData.phone}
-*Country/Region:* ${formData.location}
-*Req. Quantity:* ${formData.quantity}
-*Message:* ${formData.message}`;
+      // Build a clean, readable WhatsApp message (no markdown stars)
+      const lines = [
+        `Hello PJ Stones,`,
+        ``,
+        `I would like to enquire about the following product:`,
+        ``,
+        `🪨 Product: ${productName}`,
+        ``,
+        `📋 My Details`,
+        `   Name       : ${formData.name}`,
+        `   Email      : ${formData.email}`,
+        `   Phone      : ${formData.phone}`,
+        `   Country    : ${formData.location}`,
+        `   Est. Volume: ${formData.quantity}`,
+        ...(formData.message ? [``, `📝 Additional Notes`, `   ${formData.message}`] : []),
+        ``,
+        `Please share pricing, availability, and export details at your earliest convenience.`,
+        ``,
+        `Thank you!`,
+      ];
 
-      const encodedText = encodeURIComponent(waText);
-      const whatsappUrl = `https://wa.me/${contactInfo.whatsapp}?text=${encodedText}`;
-
-      // Open WhatsApp in a new tab
+      const waText = lines.join('\n');
+      const whatsappUrl = `https://wa.me/${contactInfo.whatsapp}?text=${encodeURIComponent(waText)}`;
       window.open(whatsappUrl, '_blank');
     }, 1200);
   };

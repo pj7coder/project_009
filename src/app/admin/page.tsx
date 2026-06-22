@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useStoneContext } from '@/context/StoneContext';
 import { Product, Project, Blog } from '@/data/stoneData';
-import { Plus, Edit2, Trash2, Save, X, Download, Upload, Info, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Download, Upload, Loader2 } from 'lucide-react';
 
 type ActiveTab = 'products' | 'projects' | 'blogs' | 'contact';
 
@@ -45,22 +45,27 @@ export default function Admin() {
   const [showImportArea, setShowImportArea] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
 
-  // Dynamic categories list
+  // Dynamic categories list — derived purely from existing data.
+  // 'Uncategorized' is excluded from the deletable list (it's a fallback, not a real category)
+  // and is sorted to last position in filter dropdowns.
   const existingProductCategories = React.useMemo(() => {
-    const cats = new Set(['Quartzite', 'Marble', 'Granite']);
+    const cats = new Set<string>();
     products.forEach(p => {
-      if (p.category) cats.add(p.category);
+      if (p.category && p.category !== 'Uncategorized') cats.add(p.category);
     });
-    return Array.from(cats);
+    return Array.from(cats).sort();
   }, [products]);
 
   const existingProjectCategories = React.useMemo(() => {
-    const cats = new Set(['Residential', 'Commercial', 'Hospitality']);
+    const cats = new Set<string>();
     projects.forEach(p => {
-      if (p.category) cats.add(p.category);
+      if (p.category && p.category !== 'Uncategorized') cats.add(p.category);
     });
-    return Array.from(cats);
+    return Array.from(cats).sort();
   }, [projects]);
+
+  // Whether the contact form was saved successfully (for inline message)
+  const [contactSaved, setContactSaved] = useState(false);
 
   const [isNewProductCategory, setIsNewProductCategory] = useState(false);
   const [customProductCategory, setCustomProductCategory] = useState('');
@@ -1123,6 +1128,7 @@ export default function Admin() {
           </h3>
           <form onSubmit={async (e) => {
             e.preventDefault();
+            setContactSaved(false);
             try {
               const markets = contactForm.targetMarkets.split(',').map(m => m.trim()).filter(Boolean);
               await updateContactInfo({
@@ -1132,7 +1138,8 @@ export default function Admin() {
                 address: contactForm.address,
                 targetMarkets: markets
               });
-              triggerNotification('Contact details updated successfully!');
+              setContactSaved(true);
+              setTimeout(() => setContactSaved(false), 5000);
             } catch (err) {
               console.error('[Admin] Contact update error:', err);
               triggerNotification('Error updating contact details. Please try again.');
@@ -1201,36 +1208,28 @@ export default function Admin() {
                 />
               </div>
 
-              <div style={{ marginTop: '1.5rem' }}>
+              <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
                 <button type="submit" className="btn-primary" style={{ display: 'inline-flex', gap: '0.4rem', padding: '0.8rem 2rem' }}>
                   <Save size={16} /> Save Contact Details
                 </button>
+                {contactSaved && (
+                  <span style={{
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    color: '#22c55e',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    animation: 'fadeIn 0.3s ease'
+                  }}>
+                    ✓ Contact details updated successfully!
+                  </span>
+                )}
               </div>
             </div>
           </form>
         </div>
       )}
-
-      {/* Admin Panel Warning/Help Info */}
-      <div className="glass-panel" style={{
-        marginTop: '4rem',
-        padding: '1.5rem',
-        borderRadius: '4px',
-        border: '1px solid var(--border-color)',
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: '1rem'
-      }}>
-        <Info size={24} style={{ color: 'var(--gold)', flexShrink: 0, marginTop: '3px' }} />
-        <div>
-          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
-            Data Persistence Guidance
-          </h4>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4', margin: 0 }}>
-            Because this application is designed for serverless deployment on Vercel, edits are stored in your browser's local cache (localStorage). To persist updates across other devices or environments, click <strong>EXPORT BACKUP</strong> to download the updated JSON database file. You can then copy it into <code>src/data/stoneData.ts</code>, commit to your repository, or paste it here using <strong>IMPORT BACKUP</strong>.
-          </p>
-        </div>
-      </div>
 
     </div>
   );
