@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useStoneContext } from '@/context/StoneContext';
 import { Product, Project, Blog } from '@/data/stoneData';
-import { Plus, Edit2, Trash2, Save, X, Download, Upload, Loader2, Lock, LogOut, MapPin, Calendar, Box } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Download, Upload, Loader2, Lock, LogOut, MapPin, Calendar, Box, ChevronLeft, ChevronRight } from 'lucide-react';
 
 type ActiveTab = 'products' | 'projects' | 'blogs' | 'contact';
 
@@ -23,9 +23,9 @@ function splitImageUrls(str: string): string[] {
   return result;
 }
 
-// Max upload file size: 5 MB (chosen for a good balance between image quality and DB storage)
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
-const MAX_FILE_SIZE_LABEL = '5 MB';
+// Max upload file size: 10 MB limit for raw images before compression
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_FILE_SIZE_LABEL = '10 MB';
 
 interface ImageUploadFieldProps {
   label: string;
@@ -34,10 +34,66 @@ interface ImageUploadFieldProps {
   multiple?: boolean;
 }
 
+// Client-side image compression to WebP (highly optimized size & high performance)
+const compressImageToWebP = (file: File): Promise<File> => {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || !file.type.startsWith('image/')) {
+      resolve(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1200; // Optimal high fidelity width for premium display
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".webp", {
+                  type: 'image/webp',
+                  lastModified: Date.now()
+                });
+                resolve(compressedFile);
+              } else {
+                resolve(file);
+              }
+            },
+            'image/webp',
+            0.75 // 75% quality is visually indistinguishable and outputs ~120KB files
+          );
+        } else {
+          resolve(file);
+        }
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+};
+
 function ImageUploadField({ label, images, onChange, multiple = true }: ImageUploadFieldProps) {
   const [uploading, setUploading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [sizeError, setSizeError] = useState('');
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const imagesList = splitImageUrls(images);
@@ -50,34 +106,50 @@ function ImageUploadField({ label, images, onChange, multiple = true }: ImageUpl
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    const file = files[0];
     setSizeError('');
-
-    // 5 MB size limit
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      setSizeError(`File is ${(file.size / 1024 / 1024).toFixed(1)} MB — maximum allowed is ${MAX_FILE_SIZE_LABEL}. Please compress or resize before uploading.`);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
-
     setUploading(true);
+
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'same-origin' });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Server returned status ${res.status}`);
+      const newUrls: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
+        // Compress image first
+        const compressedFile = await compressImageToWebP(file);
+
+        if (compressedFile.size > MAX_FILE_SIZE_BYTES) {
+          setSizeError(`File "${file.name}" is too large. Maximum allowed is ${MAX_FILE_SIZE_LABEL}.`);
+          continue;
+        }
+
+        const formData = new FormData();
+        formData.append('file', compressedFile);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+          credentials: 'same-origin',
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || `Server returned status ${res.status}`);
+        }
+
+        const data = await res.json();
+        newUrls.push(data.url);
       }
-      const data = await res.json();
-      const uploadedUrl = data.url;
-      if (multiple) {
-        const newList = [...imagesList, uploadedUrl];
-        onChange(newList.join(', '));
-        setActiveIndex(newList.length - 1);
-      } else {
-        onChange(uploadedUrl);
-        setActiveIndex(0);
+
+      if (newUrls.length > 0) {
+        if (multiple) {
+          const newList = [...imagesList, ...newUrls];
+          onChange(newList.join(', '));
+          setActiveIndex(newList.length - 1);
+        } else {
+          onChange(newUrls[0]);
+          setActiveIndex(0);
+        }
       }
     } catch (err: any) {
       console.error(err);
@@ -97,6 +169,19 @@ function ImageUploadField({ label, images, onChange, multiple = true }: ImageUpl
     } else {
       onChange('');
       setActiveIndex(0);
+    }
+  };
+
+  const moveImage = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= imagesList.length) return;
+    const updated = [...imagesList];
+    const [moved] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, moved);
+    onChange(updated.join(', '));
+    if (activeIndex === fromIndex) {
+      setActiveIndex(toIndex);
+    } else if (activeIndex === toIndex) {
+      setActiveIndex(fromIndex);
     }
   };
 
@@ -148,23 +233,122 @@ function ImageUploadField({ label, images, onChange, multiple = true }: ImageUpl
         {/* Right: thumbnails + add button (multiple only) */}
         {multiple && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'flex-start' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-              {imagesList.map((imgUrl, idx) => (
-                <div key={idx} onClick={() => setActiveIndex(idx)} style={{ width: '70px', height: '50px', borderRadius: '2px', overflow: 'hidden', cursor: 'pointer', border: idx === activeIndex ? '2px solid var(--gold)' : '1px solid var(--border-color)', background: 'var(--bg-secondary)', flexShrink: 0, transition: 'border-color 0.2s' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imgUrl} alt={`img ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-              ))}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem' }}>
+              {imagesList.map((imgUrl, idx) => {
+                const isDragOver = dragIndex === idx;
+                return (
+                  <div
+                    key={idx}
+                    draggable={true}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', idx.toString());
+                      setDragIndex(idx);
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                    }}
+                    onDrop={(e) => {
+                      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                      if (!isNaN(fromIdx) && fromIdx !== idx) {
+                        moveImage(fromIdx, idx);
+                      }
+                      setDragIndex(null);
+                    }}
+                    onDragEnd={() => setDragIndex(null)}
+                    style={{
+                      position: 'relative',
+                      width: '78px',
+                      height: '58px',
+                      borderRadius: '4px',
+                      cursor: 'grab',
+                      border: idx === activeIndex ? '2px solid var(--gold)' : '1px solid var(--border-color)',
+                      background: 'var(--bg-secondary)',
+                      flexShrink: 0,
+                      transition: 'all 0.2s ease',
+                      opacity: isDragOver ? 0.6 : 1,
+                      transform: isDragOver ? 'scale(1.05)' : 'none',
+                    }}
+                    onClick={() => setActiveIndex(idx)}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imgUrl} alt={`img ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '3px' }} />
+                    
+                    {/* Number badge */}
+                    <span style={{ position: 'absolute', bottom: '2px', left: '2px', background: 'rgba(0,0,0,0.75)', color: 'var(--gold-light)', fontSize: '0.65rem', fontWeight: 'bold', padding: '1px 4px', borderRadius: '2px', pointerEvents: 'none' }}>
+                      {idx + 1}
+                    </span>
+
+                    {/* Small overlay close 'x' to remove from upload list */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveImage(idx);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: '-5px',
+                        right: '-5px',
+                        width: '18px',
+                        height: '18px',
+                        background: '#ef4444',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '50%',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.65rem',
+                        fontWeight: 'bold',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                        zIndex: 10
+                      }}
+                      title="Remove image"
+                    >
+                      ✕
+                    </button>
+
+                    {/* Left/Right shifts for ordering */}
+                    <div style={{ position: 'absolute', bottom: '2px', right: '2px', display: 'flex', gap: '2px', background: 'rgba(0,0,0,0.6)', borderRadius: '2px', padding: '1px 2px' }}>
+                      <button
+                        type="button"
+                        disabled={idx === 0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveImage(idx, idx - 1);
+                        }}
+                        style={{ background: 'none', border: 'none', color: idx === 0 ? '#555' : '#fff', cursor: idx === 0 ? 'default' : 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                        title="Move Left"
+                      >
+                        <ChevronLeft size={9} />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={idx === imagesList.length - 1}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveImage(idx, idx + 1);
+                        }}
+                        style={{ background: 'none', border: 'none', color: idx === imagesList.length - 1 ? '#555' : '#fff', cursor: idx === imagesList.length - 1 ? 'default' : 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                        title="Move Right"
+                      >
+                        <ChevronRight size={9} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
               {/* Add tile */}
-              <div onClick={() => fileInputRef.current?.click()} style={{ width: '70px', height: '50px', border: '1px dashed var(--gold)', borderRadius: '2px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--gold)', background: 'rgba(188,163,116,0.05)', transition: 'background 0.2s', flexShrink: 0 }}
+              <div onClick={() => fileInputRef.current?.click()} style={{ width: '78px', height: '58px', border: '1px dashed var(--gold)', borderRadius: '4px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--gold)', background: 'rgba(188,163,116,0.05)', transition: 'background 0.2s', flexShrink: 0 }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(188,163,116,0.12)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(188,163,116,0.05)')}
               >
-                {uploading ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <><Plus size={15} /><span style={{ fontSize: '0.6rem', fontWeight: 600 }}>Add</span></>}
+                {uploading ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <><Plus size={16} /><span style={{ fontSize: '0.65rem', fontWeight: 600 }}>Add</span></>}
               </div>
             </div>
             <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0 }}>
-              {imagesList.length} image{imagesList.length !== 1 ? 's' : ''} • no limit
+              {imagesList.length} image{imagesList.length !== 1 ? 's' : ''} • drag & drop to reorder
             </p>
           </div>
         )}
@@ -189,7 +373,7 @@ function ImageUploadField({ label, images, onChange, multiple = true }: ImageUpl
         <textarea value={images} onChange={(e) => onChange(e.target.value)} rows={2} className="form-textarea" style={{ marginTop: '0.3rem', fontSize: '0.75rem', fontFamily: 'monospace' }} placeholder="Comma-separated image URLs" />
       </details>
 
-      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" style={{ display: 'none' }} />
+      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" multiple={multiple} style={{ display: 'none' }} />
     </div>
   );
 }
