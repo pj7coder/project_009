@@ -23,6 +23,10 @@ function splitImageUrls(str: string): string[] {
   return result;
 }
 
+// Max upload file size: 5 MB (chosen for a good balance between image quality and DB storage)
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_FILE_SIZE_LABEL = '5 MB';
+
 interface ImageUploadFieldProps {
   label: string;
   images: string;
@@ -33,75 +37,40 @@ interface ImageUploadFieldProps {
 function ImageUploadField({ label, images, onChange, multiple = true }: ImageUploadFieldProps) {
   const [uploading, setUploading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [sizeError, setSizeError] = useState('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const imagesList = splitImageUrls(images);
 
-  // Reset active index if it goes out of bounds
   React.useEffect(() => {
-    if (imagesList.length === 0) {
-      setActiveIndex(0);
-    } else if (activeIndex >= imagesList.length) {
-      setActiveIndex(imagesList.length - 1);
-    }
+    if (imagesList.length === 0) setActiveIndex(0);
+    else if (activeIndex >= imagesList.length) setActiveIndex(imagesList.length - 1);
   }, [imagesList.length, activeIndex]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
     const file = files[0];
+    setSizeError('');
 
-    // Validate Aspect Ratio (Landscape, between 1.2 and 2.0)
+    // 5 MB size limit
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setSizeError(`File is ${(file.size / 1024 / 1024).toFixed(1)} MB — maximum allowed is ${MAX_FILE_SIZE_LABEL}. Please compress or resize before uploading.`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     setUploading(true);
     try {
-      const validateResult = await new Promise<{ valid: boolean; ratio: number }>((resolve) => {
-        const img = new Image();
-        const objectUrl = URL.createObjectURL(file);
-        img.src = objectUrl;
-        img.onload = () => {
-          URL.revokeObjectURL(objectUrl);
-          const ratio = img.width / img.height;
-          // Accept landscape aspect ratios (1.2 to 2.0 covers standard 4:3 (~1.33) and 16:9 (~1.77))
-          const valid = ratio >= 1.2 && ratio <= 2.0;
-          resolve({ valid, ratio });
-        };
-        img.onerror = () => {
-          URL.revokeObjectURL(objectUrl);
-          resolve({ valid: false, ratio: 0 });
-        };
-      });
-
-      if (!validateResult.valid) {
-        const proceed = window.confirm(
-          `Notice: The selected image does not have the recommended landscape aspect ratio.\n` +
-          `Current ratio: ${validateResult.ratio.toFixed(2)} (recommended: 1.20 to 2.00, landscape).\n\n` +
-          `Do you want to proceed with the upload anyway?`
-        );
-        if (!proceed) {
-          setUploading(false);
-          if (fileInputRef.current) fileInputRef.current.value = '';
-          return;
-        }
-      }
-
       const formData = new FormData();
       formData.append('file', file);
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-        credentials: 'same-origin',
-      });
-
+      const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'same-origin' });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || `Server returned status ${res.status}`);
       }
-
       const data = await res.json();
       const uploadedUrl = data.url;
-
       if (multiple) {
         const newList = [...imagesList, uploadedUrl];
         onChange(newList.join(', '));
@@ -112,7 +81,7 @@ function ImageUploadField({ label, images, onChange, multiple = true }: ImageUpl
       }
     } catch (err: any) {
       console.error(err);
-      alert(`Failed to upload image: ${err.message || 'Please try again.'}`);
+      alert(`Upload failed: ${err.message || 'Please try again.'}`);
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -121,12 +90,10 @@ function ImageUploadField({ label, images, onChange, multiple = true }: ImageUpl
 
   const handleRemoveImage = (index: number) => {
     if (multiple) {
-      const updatedList = [...imagesList];
-      updatedList.splice(index, 1);
-      onChange(updatedList.join(', '));
-      if (activeIndex >= updatedList.length) {
-        setActiveIndex(Math.max(0, updatedList.length - 1));
-      }
+      const updated = [...imagesList];
+      updated.splice(index, 1);
+      onChange(updated.join(', '));
+      if (activeIndex >= updated.length) setActiveIndex(Math.max(0, updated.length - 1));
     } else {
       onChange('');
       setActiveIndex(0);
@@ -136,219 +103,97 @@ function ImageUploadField({ label, images, onChange, multiple = true }: ImageUpl
   const activeImageUrl = imagesList[activeIndex];
 
   return (
-    <div className="form-group" style={{ marginBottom: '2rem' }}>
-      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-        {label} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)', textTransform: 'none' }}>(Landscape, 4:3 or 16:9 ratio required)</span>
+    <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {label}
       </label>
 
-      {/* Real-window style showcase active image box */}
-      <div 
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: multiple ? '300px' : '200px',
-          borderRadius: '4px',
-          overflow: 'hidden',
-          border: '1px solid var(--border-color)',
-          background: 'var(--bg-secondary)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: '1rem',
-          boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)',
-        }}
-      >
-        {activeImageUrl ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={activeImageUrl}
-              alt="Active showcase preview"
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-            
-            <span style={{
-              position: 'absolute',
-              top: '1rem',
-              left: '1rem',
-              background: 'rgba(28, 27, 24, 0.85)',
-              color: 'var(--gold-light)',
-              fontSize: '0.75rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              padding: '0.3rem 0.6rem',
-              borderRadius: '2px',
-              fontWeight: 600,
-              border: '1px solid var(--border-color)',
-            }}>
-              {multiple ? `Showcase Image ${activeIndex + 1} of ${imagesList.length}` : 'Header Banner'}
-            </span>
+      {/* Upload guidelines */}
+      <div style={{ background: 'rgba(188,163,116,0.06)', border: '1px dashed rgba(188,163,116,0.35)', borderRadius: '3px', padding: '0.5rem 0.85rem', marginBottom: '0.75rem', fontSize: '0.76rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+        <strong style={{ color: 'var(--gold)' }}>📐 Guidelines (optional, not mandatory):</strong>{' '}
+        Landscape ratio recommended — <strong>16:9</strong> (1920×1080 px) or <strong>4:3</strong> (1600×1200 px) •{' '}
+        Format: <strong>JPG / WebP</strong> • Max file size: <strong>{MAX_FILE_SIZE_LABEL}</strong> • Min width: <strong>1200 px</strong>
+      </div>
 
-            <button
-              type="button"
-              onClick={() => handleRemoveImage(activeIndex)}
-              style={{
-                position: 'absolute',
-                top: '1rem',
-                right: '1rem',
-                background: 'rgba(239, 68, 68, 0.95)',
-                color: '#fff',
-                border: 'none',
-                padding: '0.4rem 0.8rem',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.3rem',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                transition: 'background 0.2s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#dc2626')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.95)')}
-            >
-              <Trash2 size={14} /> Remove Image
-            </button>
-          </>
-        ) : (
-          <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-            <Upload size={40} style={{ color: 'var(--gold)', marginBottom: '0.5rem', opacity: 0.7 }} />
-            <p style={{ margin: 0, fontSize: '0.9rem' }}>No image uploaded yet</p>
-            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.75rem' }}>Select a landscape file below to begin</p>
+      {sizeError && (
+        <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', borderRadius: '3px', padding: '0.5rem 0.75rem', fontSize: '0.8rem', marginBottom: '0.75rem' }}>
+          ⚠️ {sizeError}
+        </div>
+      )}
+
+      {/* Compact two-column layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: multiple ? '1fr 1fr' : '1fr', gap: '0.75rem', alignItems: 'start' }}>
+
+        {/* Left: Active preview */}
+        <div style={{ position: 'relative', aspectRatio: '16/9', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {activeImageUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={activeImageUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <span style={{ position: 'absolute', top: '0.4rem', left: '0.4rem', background: 'rgba(28,27,24,0.85)', color: 'var(--gold-light)', fontSize: '0.65rem', padding: '0.2rem 0.45rem', borderRadius: '2px', fontWeight: 600 }}>
+                {multiple ? `${activeIndex + 1} / ${imagesList.length}` : 'Preview'}
+              </span>
+              <button type="button" onClick={() => handleRemoveImage(activeIndex)} style={{ position: 'absolute', top: '0.4rem', right: '0.4rem', background: 'rgba(239,68,68,0.9)', color: '#fff', border: 'none', padding: '0.2rem 0.5rem', borderRadius: '3px', cursor: 'pointer', fontSize: '0.68rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                <Trash2 size={11} /> Remove
+              </button>
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+              <Upload size={26} style={{ color: 'var(--gold)', opacity: 0.6, marginBottom: '0.25rem' }} />
+              <p style={{ margin: 0, fontSize: '0.75rem' }}>No image yet</p>
+            </div>
+          )}
+        </div>
+
+        {/* Right: thumbnails + add button (multiple only) */}
+        {multiple && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'flex-start' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+              {imagesList.map((imgUrl, idx) => (
+                <div key={idx} onClick={() => setActiveIndex(idx)} style={{ width: '70px', height: '50px', borderRadius: '2px', overflow: 'hidden', cursor: 'pointer', border: idx === activeIndex ? '2px solid var(--gold)' : '1px solid var(--border-color)', background: 'var(--bg-secondary)', flexShrink: 0, transition: 'border-color 0.2s' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imgUrl} alt={`img ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              ))}
+              {/* Add tile */}
+              <div onClick={() => fileInputRef.current?.click()} style={{ width: '70px', height: '50px', border: '1px dashed var(--gold)', borderRadius: '2px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--gold)', background: 'rgba(188,163,116,0.05)', transition: 'background 0.2s', flexShrink: 0 }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(188,163,116,0.12)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(188,163,116,0.05)')}
+              >
+                {uploading ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <><Plus size={15} /><span style={{ fontSize: '0.6rem', fontWeight: 600 }}>Add</span></>}
+              </div>
+            </div>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0 }}>
+              {imagesList.length} image{imagesList.length !== 1 ? 's' : ''} • no limit
+            </p>
           </div>
         )}
       </div>
 
-      {/* Thumbnail grid mirroring the real window detail thumbnail row */}
-      {multiple && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.8rem', alignItems: 'center', marginBottom: '1rem' }}>
-          {imagesList.map((imgUrl, idx) => (
-            <div
-              key={idx}
-              onClick={() => setActiveIndex(idx)}
-              style={{
-                position: 'relative',
-                width: '90px',
-                height: '65px',
-                borderRadius: '2px',
-                overflow: 'hidden',
-                cursor: 'pointer',
-                border: idx === activeIndex ? '2px solid var(--gold)' : '1px solid var(--border-color)',
-                padding: 0,
-                background: 'var(--bg-secondary)',
-                transition: 'all 0.2s ease',
-                transform: idx === activeIndex ? 'scale(1.05)' : 'none',
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imgUrl}
-                alt={`Thumbnail preview ${idx + 1}`}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-              <span style={{
-                position: 'absolute',
-                bottom: '2px',
-                right: '4px',
-                color: '#fff',
-                fontSize: '0.65rem',
-                textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-                fontWeight: 'bold',
-              }}>
-                {idx + 1}
-              </span>
-            </div>
-          ))}
-
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              width: '90px',
-              height: '65px',
-              border: '1px dashed var(--gold)',
-              borderRadius: '2px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: 'var(--gold)',
-              background: 'rgba(188, 163, 116, 0.05)',
-              transition: 'all 0.3s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(188, 163, 116, 0.1)';
-              e.currentTarget.style.borderColor = 'var(--text-primary)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(188, 163, 116, 0.05)';
-              e.currentTarget.style.borderColor = 'var(--gold)';
-            }}
-          >
-            {uploading ? (
-              <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-            ) : (
-              <>
-                <Plus size={18} style={{ marginBottom: '0.1rem' }} />
-                <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Add Image</span>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* If single image and no image exists, show the upload button */}
-      {!multiple && !activeImageUrl && (
-        <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="btn-primary"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.6rem 1.5rem',
-              fontSize: '0.8rem',
-            }}
-          >
-            {uploading ? (
-              <>
-                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                Uploading...
-              </>
-            ) : (
-              <>
-                <Upload size={14} /> Upload Banner Image
-              </>
-            )}
+      {/* Single image controls */}
+      {!multiple && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.6rem' }}>
+          <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-secondary" style={{ padding: '0.45rem 1.1rem', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+            {uploading ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Uploading...</> : <><Upload size={13} /> {activeImageUrl ? 'Replace' : 'Upload Image'}</>}
           </button>
+          {activeImageUrl && (
+            <button type="button" onClick={() => handleRemoveImage(0)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <Trash2 size={13} /> Remove
+            </button>
+          )}
         </div>
       )}
 
-      <details style={{ marginTop: '0.8rem', cursor: 'pointer' }}>
-        <summary style={{ fontSize: '0.75rem', color: 'var(--text-muted)', userSelect: 'none' }}>Edit raw image URLs</summary>
-        <textarea
-          value={images}
-          onChange={(e) => onChange(e.target.value)}
-          rows={2}
-          className="form-textarea"
-          style={{ marginTop: '0.3rem', fontSize: '0.8rem', fontFamily: 'monospace' }}
-          placeholder="Comma-separated image URLs"
-        />
+      <details style={{ marginTop: '0.5rem', cursor: 'pointer' }}>
+        <summary style={{ fontSize: '0.72rem', color: 'var(--text-muted)', userSelect: 'none' }}>Edit raw image URLs (advanced)</summary>
+        <textarea value={images} onChange={(e) => onChange(e.target.value)} rows={2} className="form-textarea" style={{ marginTop: '0.3rem', fontSize: '0.75rem', fontFamily: 'monospace' }} placeholder="Comma-separated image URLs" />
       </details>
 
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        accept="image/*"
-        style={{ display: 'none' }}
-      />
+      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" style={{ display: 'none' }} />
     </div>
   );
 }
+
 
 export default function Admin() {
   const {
@@ -404,6 +249,10 @@ export default function Admin() {
   const [importText, setImportText] = useState('');
   const [showImportArea, setShowImportArea] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
+
+  // Inline save states for form
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveDone, setSaveDone] = useState(false);
 
   // Dynamic categories list — derived purely from existing data.
   // 'Uncategorized' is excluded from the deletable list (it's a fallback, not a real category)
@@ -604,6 +453,8 @@ export default function Admin() {
   // Submit Handler
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
+    setSaveDone(false);
 
     try {
     if (activeTab === 'products') {
@@ -664,13 +515,18 @@ export default function Admin() {
         triggerNotification('New blog article added successfully!');
       }
     }
+      setSaveDone(true);
+      setTimeout(() => {
+        setSaveDone(false);
+        setShowForm(false);
+        setEditId(null);
+      }, 1200);
     } catch (err) {
       console.error('[Admin] Form submit error:', err);
       triggerNotification('Error saving data. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
-
-    setShowForm(false);
-    setEditId(null);
   };
 
   // Delete Handler
@@ -1133,11 +989,13 @@ export default function Admin() {
                     <label>Stone Category *</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       <select
-                        value={isNewProductCategory ? 'NEW_CUSTOM_CATEGORY' : productForm.category}
+                        value={isNewProductCategory ? 'NEW_CUSTOM_CATEGORY' : (productForm.category || '')}
                         onChange={(e) => {
                           if (e.target.value === 'NEW_CUSTOM_CATEGORY') {
                             setIsNewProductCategory(true);
                             setProductForm({ ...productForm, category: customProductCategory });
+                          } else if (e.target.value === '') {
+                            // placeholder — do nothing
                           } else {
                             setIsNewProductCategory(false);
                             setProductForm({ ...productForm, category: e.target.value });
@@ -1145,6 +1003,9 @@ export default function Admin() {
                         }}
                         className="form-select"
                       >
+                        {existingProductCategories.length === 0 && !isNewProductCategory && (
+                          <option value="">— Select or create a category —</option>
+                        )}
                         {existingProductCategories.map((cat) => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
@@ -1281,11 +1142,13 @@ export default function Admin() {
                     <label>Project Category *</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       <select
-                        value={isNewProjectCategory ? 'NEW_CUSTOM_CATEGORY' : projectForm.category}
+                        value={isNewProjectCategory ? 'NEW_CUSTOM_CATEGORY' : (projectForm.category || '')}
                         onChange={(e) => {
                           if (e.target.value === 'NEW_CUSTOM_CATEGORY') {
                             setIsNewProjectCategory(true);
                             setProjectForm({ ...projectForm, category: customProjectCategory });
+                          } else if (e.target.value === '') {
+                            // placeholder — do nothing
                           } else {
                             setIsNewProjectCategory(false);
                             setProjectForm({ ...projectForm, category: e.target.value });
@@ -1293,6 +1156,9 @@ export default function Admin() {
                         }}
                         className="form-select"
                       >
+                        {existingProjectCategories.length === 0 && !isNewProjectCategory && (
+                          <option value="">— Select or create a category —</option>
+                        )}
                         {existingProjectCategories.map((cat) => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
@@ -1448,21 +1314,40 @@ export default function Admin() {
             )}
 
             {/* Form Actions */}
-            <div style={{ display: 'flex', gap: '1.2rem', marginTop: '2.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
-              <button type="submit" className="btn-primary" style={{ display: 'inline-flex', gap: '0.4rem', padding: '0.8rem 2rem' }}>
-                <Save size={16} /> Save Data
+            <div style={{ display: 'flex', gap: '1.2rem', marginTop: '2.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="submit"
+                disabled={isSaving || saveDone}
+                className="btn-primary"
+                style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center', padding: '0.8rem 2rem', minWidth: '140px', justifyContent: 'center' }}
+              >
+                {isSaving ? (
+                  <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Saving...</>
+                ) : saveDone ? (
+                  <><span style={{ fontSize: '1rem' }}>✓</span> Saved!</>
+                ) : (
+                  <><Save size={16} /> Save Data</>
+                )}
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setShowForm(false);
-                  setEditId(null);
-                }}
+                onClick={() => { setShowForm(false); setEditId(null); }}
                 className="btn-secondary"
                 style={{ padding: '0.8rem 2rem' }}
+                disabled={isSaving}
               >
                 Cancel
               </button>
+              {isSaving && (
+                <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Uploading to database...
+                </span>
+              )}
+              {saveDone && (
+                <span style={{ fontSize: '0.82rem', color: '#4ade80', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                  ✓ Data saved successfully
+                </span>
+              )}
             </div>
           </form>
         </div>
