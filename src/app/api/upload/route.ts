@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
-import { isAuthenticated } from '@/lib/auth';
+
 
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
+    const { isAuthenticated } = await import('@/lib/auth');
     if (!(await isAuthenticated())) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

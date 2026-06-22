@@ -38,7 +38,8 @@ function ImageUploadField({ label, images, onChange, multiple = true }: ImageUpl
       });
 
       if (!res.ok) {
-        throw new Error('Upload failed');
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server returned status ${res.status}`);
       }
 
       const data = await res.json();
@@ -49,9 +50,9 @@ function ImageUploadField({ label, images, onChange, multiple = true }: ImageUpl
       } else {
         onChange(uploadedUrl);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to upload image. Please try again.');
+      alert(`Failed to upload image: ${err.message || 'Please try again.'}`);
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
