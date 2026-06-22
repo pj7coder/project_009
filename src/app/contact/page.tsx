@@ -29,20 +29,20 @@ export default function Contact() {
       setLoading(false);
       setIsSubmitted(true);
 
-      // Clean, readable WhatsApp message (no markdown stars)
+      // Clean, readable WhatsApp message (no emojis to prevent encoding issues)
       const lines = [
         `Hello PJ Stones,`,
         ``,
         `I am reaching out regarding a general enquiry.`,
         ``,
-        `📋 Contact Details`,
-        `   Name    : ${formData.name}`,
-        `   Email   : ${formData.email}`,
-        `   Region  : ${formData.market}`,
+        `Contact Details:`,
+        `- Name: ${formData.name}`,
+        `- Email: ${formData.email}`,
+        `- Target Region: ${formData.market}`,
         ``,
-        `📌 Subject: ${formData.subject}`,
+        `Subject: ${formData.subject}`,
         ``,
-        ...(formData.message ? [`💬 Message`, `   ${formData.message}`, ``] : []),
+        ...(formData.message ? [`Message:`, formData.message, ``] : []),
         `Looking forward to your response.`,
         ``,
         `Thank you!`,

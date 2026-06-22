@@ -35,21 +35,20 @@ export default function InquiryForm({ productName }: InquiryFormProps) {
       setLoading(false);
       setIsSubmitted(true);
 
-      // Build a clean, readable WhatsApp message (no markdown stars)
+      // Build a clean, readable WhatsApp message (no emojis to prevent encoding issues)
       const lines = [
         `Hello PJ Stones,`,
         ``,
         `I would like to enquire about the following product:`,
+        `Product: ${productName}`,
         ``,
-        `🪨 Product: ${productName}`,
-        ``,
-        `📋 My Details`,
-        `   Name       : ${formData.name}`,
-        `   Email      : ${formData.email}`,
-        `   Phone      : ${formData.phone}`,
-        `   Country    : ${formData.location}`,
-        `   Est. Volume: ${formData.quantity}`,
-        ...(formData.message ? [``, `📝 Additional Notes`, `   ${formData.message}`] : []),
+        `Inquirer Details:`,
+        `- Name: ${formData.name}`,
+        `- Email: ${formData.email}`,
+        `- Phone: ${formData.phone}`,
+        `- Destination Country: ${formData.location}`,
+        `- Estimated Volume: ${formData.quantity}`,
+        ...(formData.message ? [``, `Additional Requirements:`, formData.message] : []),
         ``,
         `Please share pricing, availability, and export details at your earliest convenience.`,
         ``,
