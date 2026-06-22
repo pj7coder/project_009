@@ -7,12 +7,6 @@ import { ArrowRight, ShieldCheck, Globe, Award, Sparkles, MessageSquare } from '
 
 export default function Home() {
   const { products, projects, contactInfo } = useStoneContext();
-  const [activeCategory, setActiveCategory] = useState<'All' | 'Quartzite' | 'Marble' | 'Granite'>('All');
-
-  // Filter products based on selected category
-  const filteredProducts = activeCategory === 'All'
-    ? products.slice(0, 3) // Show first 3 products as featured
-    : products.filter(p => p.category === activeCategory).slice(0, 3);
 
   const stats = [
     { value: '15+', label: 'Countries Supplied' },
@@ -236,41 +230,9 @@ export default function Home() {
             <h2>Browse Featured Collection</h2>
           </div>
 
-          {/* Category Tabs */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '1rem',
-            marginBottom: '3rem',
-            flexWrap: 'wrap'
-          }}>
-            {(['All', 'Quartzite', 'Marble', 'Granite'] as const).map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                style={{
-                  background: activeCategory === cat ? 'var(--gold-gradient)' : 'transparent',
-                  color: activeCategory === cat ? '#1c1b18' : 'var(--text-secondary)',
-                  border: '1px solid',
-                  borderColor: activeCategory === cat ? 'var(--gold)' : 'var(--border-color)',
-                  padding: '0.6rem 1.8rem',
-                  borderRadius: '2px',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
           {/* Product Grid */}
-          <div className="stone-grid">
-            {filteredProducts.map((product) => (
+          <div className="stone-grid" style={{ marginTop: '3rem' }}>
+            {products.slice(0, 3).map((product) => (
               <div
                 key={product.id}
                 className="glass-panel"
