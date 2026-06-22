@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir, appendFile } from 'fs/promises';
-import { join } from 'path';
-
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,37 +17,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    // Convert file to buffer
+    // Convert file to Base64
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    const base64String = buffer.toString('base64');
+    const fileUrl = `data:${file.type || 'image/jpeg'};base64,${base64String}`;
 
-    // Create the public/uploads directory if it doesn't exist
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
-    await mkdir(uploadDir, { recursive: true });
-
-    // Generate unique name
-    const timestamp = Date.now();
-    const cleanFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-    const fileName = `${timestamp}_${cleanFileName}`;
-    const filePath = join(uploadDir, fileName);
-
-    // Save the file to disk
-    await writeFile(filePath, buffer);
-
-    const fileUrl = `/uploads/${fileName}`;
     return NextResponse.json({ url: fileUrl });
   } catch (error) {
     console.error('[API/upload POST]', error);
     const errMsg = error instanceof Error ? error.message : String(error);
-    const errStack = error instanceof Error ? error.stack : '';
-    try {
-      await appendFile(
-        join(process.cwd(), 'upload_errors.log'),
-        `[${new Date().toISOString()}] ${errMsg}\nStack: ${errStack}\n\n`
-      );
-    } catch (logErr) {
-      // Ignore log write errors
-    }
     return NextResponse.json({ error: `Upload failed: ${errMsg}` }, { status: 500 });
   }
 }
