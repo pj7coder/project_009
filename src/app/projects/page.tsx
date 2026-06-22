@@ -7,13 +7,16 @@ import { MapPin, Calendar, Sparkles, Box, ArrowRight } from 'lucide-react';
 
 export default function Projects() {
   const { projects } = useStoneContext();
-  const [selectedCategory, setSelectedCategory] = useState<'All' | 'Residential' | 'Commercial' | 'Hospitality'>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   const filteredProjects = selectedCategory === 'All'
     ? projects
     : projects.filter(p => p.category === selectedCategory);
 
-  const categories = ['All', 'Residential', 'Commercial', 'Hospitality'];
+  const categories = React.useMemo(() => {
+    const uniq = Array.from(new Set(projects.map((p) => p.category)));
+    return ['All', ...uniq];
+  }, [projects]);
 
   return (
     <div className="container fade-in" style={{ padding: '4rem 2rem 6rem 2rem' }}>

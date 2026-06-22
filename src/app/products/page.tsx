@@ -7,8 +7,13 @@ import { ArrowRight, Search, SlidersHorizontal } from 'lucide-react';
 
 export default function Products() {
   const { products } = useStoneContext();
-  const [selectedCategory, setSelectedCategory] = useState<'All' | 'Quartzite' | 'Marble' | 'Granite'>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const categories = useMemo(() => {
+    const uniq = Array.from(new Set(products.map((p) => p.category)));
+    return ['All', ...uniq];
+  }, [products]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -76,7 +81,7 @@ export default function Products() {
           gap: '0.8rem',
           flexWrap: 'wrap'
         }}>
-          {(['All', 'Quartzite', 'Marble', 'Granite'] as const).map((cat) => (
+          {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}

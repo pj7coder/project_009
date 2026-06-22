@@ -24,10 +24,32 @@ export default function Admin() {
   const [showImportArea, setShowImportArea] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
 
+  // Dynamic categories list
+  const existingProductCategories = React.useMemo(() => {
+    const cats = new Set(['Quartzite', 'Marble', 'Granite']);
+    products.forEach(p => {
+      if (p.category) cats.add(p.category);
+    });
+    return Array.from(cats);
+  }, [products]);
+
+  const existingProjectCategories = React.useMemo(() => {
+    const cats = new Set(['Residential', 'Commercial', 'Hospitality']);
+    projects.forEach(p => {
+      if (p.category) cats.add(p.category);
+    });
+    return Array.from(cats);
+  }, [projects]);
+
+  const [isNewProductCategory, setIsNewProductCategory] = useState(false);
+  const [customProductCategory, setCustomProductCategory] = useState('');
+  const [isNewProjectCategory, setIsNewProjectCategory] = useState(false);
+  const [customProjectCategory, setCustomProjectCategory] = useState('');
+
   // Form States (Common/Union representation)
   const [productForm, setProductForm] = useState({
     name: '',
-    category: 'Quartzite' as 'Quartzite' | 'Marble' | 'Granite',
+    category: 'Quartzite' as string,
     description: '',
     detailedDescription: '',
     images: '',
@@ -40,7 +62,7 @@ export default function Admin() {
 
   const [projectForm, setProjectForm] = useState({
     title: '',
-    category: 'Residential',
+    category: 'Residential' as string,
     location: '',
     description: '',
     images: '',
@@ -61,6 +83,11 @@ export default function Admin() {
   const handleAddNew = () => {
     setEditId(null);
     setShowForm(true);
+
+    setIsNewProductCategory(false);
+    setCustomProductCategory('');
+    setIsNewProjectCategory(false);
+    setCustomProjectCategory('');
 
     // Reset forms
     setProductForm({
@@ -100,6 +127,11 @@ export default function Admin() {
   const handleEdit = (id: string) => {
     setEditId(id);
     setShowForm(true);
+
+    setIsNewProductCategory(false);
+    setCustomProductCategory('');
+    setIsNewProjectCategory(false);
+    setCustomProjectCategory('');
 
     if (activeTab === 'products') {
       const item = products.find(p => p.id === id);
@@ -448,15 +480,40 @@ export default function Admin() {
                   </div>
                   <div className="form-group">
                     <label>Stone Category *</label>
-                    <select
-                      value={productForm.category}
-                      onChange={(e) => setProductForm({ ...productForm, category: e.target.value as any })}
-                      className="form-select"
-                    >
-                      <option value="Quartzite">Quartzite</option>
-                      <option value="Marble">Marble</option>
-                      <option value="Granite">Granite</option>
-                    </select>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <select
+                        value={isNewProductCategory ? 'NEW_CUSTOM_CATEGORY' : productForm.category}
+                        onChange={(e) => {
+                          if (e.target.value === 'NEW_CUSTOM_CATEGORY') {
+                            setIsNewProductCategory(true);
+                            setProductForm({ ...productForm, category: customProductCategory });
+                          } else {
+                            setIsNewProductCategory(false);
+                            setProductForm({ ...productForm, category: e.target.value });
+                          }
+                        }}
+                        className="form-select"
+                      >
+                        {existingProductCategories.map((cat) => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                        <option value="NEW_CUSTOM_CATEGORY">+ Add New Category...</option>
+                      </select>
+                      {isNewProductCategory && (
+                        <input
+                          type="text"
+                          required
+                          value={customProductCategory}
+                          onChange={(e) => {
+                            setCustomProductCategory(e.target.value);
+                            setProductForm({ ...productForm, category: e.target.value });
+                          }}
+                          className="form-input"
+                          placeholder="Type new category name..."
+                          style={{ marginTop: '0.3rem' }}
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -576,15 +633,40 @@ export default function Admin() {
                   </div>
                   <div className="form-group">
                     <label>Project Category *</label>
-                    <select
-                      value={projectForm.category}
-                      onChange={(e) => setProjectForm({ ...projectForm, category: e.target.value })}
-                      className="form-select"
-                    >
-                      <option value="Residential">Residential</option>
-                      <option value="Commercial">Commercial</option>
-                      <option value="Hospitality">Hospitality</option>
-                    </select>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <select
+                        value={isNewProjectCategory ? 'NEW_CUSTOM_CATEGORY' : projectForm.category}
+                        onChange={(e) => {
+                          if (e.target.value === 'NEW_CUSTOM_CATEGORY') {
+                            setIsNewProjectCategory(true);
+                            setProjectForm({ ...projectForm, category: customProjectCategory });
+                          } else {
+                            setIsNewProjectCategory(false);
+                            setProjectForm({ ...projectForm, category: e.target.value });
+                          }
+                        }}
+                        className="form-select"
+                      >
+                        {existingProjectCategories.map((cat) => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                        <option value="NEW_CUSTOM_CATEGORY">+ Add New Category...</option>
+                      </select>
+                      {isNewProjectCategory && (
+                        <input
+                          type="text"
+                          required
+                          value={customProjectCategory}
+                          onChange={(e) => {
+                            setCustomProjectCategory(e.target.value);
+                            setProjectForm({ ...projectForm, category: e.target.value });
+                          }}
+                          className="form-input"
+                          placeholder="Type new category name..."
+                          style={{ marginTop: '0.3rem' }}
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
 
