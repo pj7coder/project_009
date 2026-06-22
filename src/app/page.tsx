@@ -243,18 +243,16 @@ export default function Home() {
                   overflow: 'hidden',
                   display: 'flex',
                   flexDirection: 'column',
-                  transition: 'transform 0.3s ease',
                   border: '1px solid var(--border-color)'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
               >
                 <div style={{ height: '240px', overflow: 'hidden', position: 'relative' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={product.images[0]}
                     alt={product.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)' }}
+                    className="card-zoom-img"
                   />
                   <span style={{
                     position: 'absolute',

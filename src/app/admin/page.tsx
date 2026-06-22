@@ -505,6 +505,7 @@ export default function Admin() {
   const handleAddNew = () => {
     setEditId(null);
     setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     setIsNewProductCategory(false);
     setCustomProductCategory('');
@@ -517,7 +518,7 @@ export default function Admin() {
       category: 'Quartzite',
       description: '',
       detailedDescription: '',
-      images: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
+      images: '',
       origin: '',
       finishes: 'Polished, Honed',
       applications: 'Kitchen Countertops, Flooring',
@@ -530,7 +531,7 @@ export default function Admin() {
       category: 'Residential',
       location: '',
       description: '',
-      images: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80',
+      images: '',
       stoneUsed: '',
       year: new Date().getFullYear().toString()
     });
@@ -540,7 +541,7 @@ export default function Admin() {
       summary: '',
       content: '',
       author: 'PJ Stone Exporters',
-      image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=80',
+      image: '',
       tags: 'Design, Sourcing'
     });
   };
@@ -549,6 +550,7 @@ export default function Admin() {
   const handleEdit = (id: string) => {
     setEditId(id);
     setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     setIsNewProductCategory(false);
     setCustomProductCategory('');

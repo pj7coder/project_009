@@ -16,11 +16,15 @@ export default function ProductDetail() {
   const product = products.find((p) => p.id === id);
 
   const [activeImage, setActiveImage] = useState<string>('');
+  const [thumbStart, setThumbStart] = useState(0);
+
+  const THUMBS_VISIBLE = 3;
 
   // Update active image when product loads
   useEffect(() => {
     if (product && product.images && product.images.length > 0) {
       setActiveImage(product.images[0]);
+      setThumbStart(0);
     }
   }, [product]);
 
@@ -39,6 +43,16 @@ export default function ProductDetail() {
       </div>
     );
   }
+
+  const totalImages = product.images.length;
+  const canScrollLeft = thumbStart > 0;
+  const canScrollRight = thumbStart + THUMBS_VISIBLE < totalImages;
+
+  const handleThumbLeft = () => setThumbStart((prev) => Math.max(0, prev - 1));
+  const handleThumbRight = () =>
+    setThumbStart((prev) => Math.min(Math.max(0, totalImages - THUMBS_VISIBLE), prev + 1));
+
+  const visibleThumbs = product.images.slice(thumbStart, thumbStart + THUMBS_VISIBLE);
 
   return (
     <div className="container fade-in" style={{ padding: '3rem 2rem 6rem 2rem' }}>
@@ -86,9 +100,10 @@ export default function ProductDetail() {
       }} className="showcase-grid">
         {/* Left Column: Image Gallery */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Main Active Slab Image */}
+          {/* Main Active Slab Image — wide 16:9 landscape ratio */}
           <div style={{
-            height: '460px',
+            width: '100%',
+            aspectRatio: '16/9',
             borderRadius: '4px',
             overflow: 'hidden',
             boxShadow: 'var(--shadow-premium)',
@@ -100,39 +115,105 @@ export default function ProductDetail() {
             <img
               src={activeImage || product.images[0]}
               alt={product.name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'all 0.3s ease' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'all 0.4s ease' }}
             />
           </div>
 
-          {/* Thumbnails Row */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${product.images.length}, 1fr)`,
-            gap: '0.75rem'
-          }}>
-            {product.images.map((img, idx) => (
+          {/* Thumbnail Row with left/right arrows — always shows 3 */}
+          {totalImages > 0 && (
+            <div style={{ display: 'flex', alignItems: 'stretch', gap: '0.5rem' }}>
+              {/* Left Arrow */}
               <button
-                key={idx}
-                onClick={() => setActiveImage(img)}
+                onClick={handleThumbLeft}
+                disabled={!canScrollLeft}
+                aria-label="Previous images"
                 style={{
-                  height: '80px',
+                  width: '32px',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: canScrollLeft ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '2px',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  border: activeImage === img ? '2px solid var(--gold)' : '1px solid var(--border-color)',
-                  padding: 0,
-                  transition: 'border-color 0.2s'
+                  cursor: canScrollLeft ? 'pointer' : 'default',
+                  color: canScrollLeft ? 'var(--text-primary)' : 'var(--border-color)',
+                  transition: 'all 0.2s ease',
+                  fontSize: '1.2rem',
+                  fontWeight: 700,
                 }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={img}
-                  alt={`${product.name} detail ${idx + 1}`}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+                ‹
               </button>
-            ))}
-          </div>
+
+              {/* 3 Visible Thumbnails */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', flex: 1 }}>
+                {visibleThumbs.map((img, idx) => {
+                  const realIdx = thumbStart + idx;
+                  return (
+                    <button
+                      key={realIdx}
+                      onClick={() => setActiveImage(img)}
+                      style={{
+                        aspectRatio: '16/9',
+                        borderRadius: '2px',
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        border: activeImage === img ? '2px solid var(--gold)' : '1px solid var(--border-color)',
+                        padding: 0,
+                        transition: 'border-color 0.2s',
+                        background: 'var(--bg-secondary)',
+                      }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={img}
+                        alt={`${product.name} detail ${realIdx + 1}`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    </button>
+                  );
+                })}
+                {/* Fill empty slots if fewer than 3 images visible */}
+                {visibleThumbs.length < THUMBS_VISIBLE &&
+                  Array.from({ length: THUMBS_VISIBLE - visibleThumbs.length }).map((_, i) => (
+                    <div
+                      key={`empty-${i}`}
+                      style={{
+                        aspectRatio: '16/9',
+                        background: 'var(--bg-secondary)',
+                        border: '1px dashed var(--border-color)',
+                        borderRadius: '2px',
+                      }}
+                    />
+                  ))}
+              </div>
+
+              {/* Right Arrow */}
+              <button
+                onClick={handleThumbRight}
+                disabled={!canScrollRight}
+                aria-label="Next images"
+                style={{
+                  width: '32px',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: canScrollRight ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '2px',
+                  cursor: canScrollRight ? 'pointer' : 'default',
+                  color: canScrollRight ? 'var(--text-primary)' : 'var(--border-color)',
+                  transition: 'all 0.2s ease',
+                  fontSize: '1.2rem',
+                  fontWeight: 700,
+                }}
+              >
+                ›
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Right Column: Specifications & Copy */}

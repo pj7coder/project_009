@@ -33,12 +33,9 @@ export default function Blogs() {
               display: 'flex',
               flexDirection: 'column',
               border: '1px solid var(--border-color)',
-              cursor: 'pointer',
-              transition: 'transform 0.3s ease'
+              cursor: 'pointer'
             }}
             onClick={() => setSelectedBlog(blog)}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
           >
             {/* Header Image */}
             <div style={{ height: '220px', overflow: 'hidden' }}>
@@ -46,7 +43,8 @@ export default function Blogs() {
               <img
                 src={blog.image}
                 alt={blog.title}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)' }}
+                className="card-zoom-img"
               />
             </div>
 
