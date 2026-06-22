@@ -27,6 +27,11 @@ export async function GET() {
 // POST /api/products — create a new product
 export async function POST(request: Request) {
   try {
+    const { isAuthenticated } = await import('@/lib/auth');
+    if (!(await isAuthenticated())) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     await connectDB();
     const body = await request.json();
 

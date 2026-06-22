@@ -25,6 +25,11 @@ export async function GET() {
 // POST /api/projects — create a new project
 export async function POST(request: Request) {
   try {
+    const { isAuthenticated } = await import('@/lib/auth');
+    if (!(await isAuthenticated())) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     await connectDB();
     const body = await request.json();
 

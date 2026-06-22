@@ -7,12 +7,18 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { isAuthenticated } = await import('@/lib/auth');
+    if (!(await isAuthenticated())) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     await connectDB();
     const { id } = await params;
+    const cleanId = String(id);
     const body = await request.json();
 
     const updated = await ProjectModel.findOneAndUpdate(
-      { id },
+      { id: cleanId },
       { $set: body },
       { new: true, runValidators: true }
     ).lean();
@@ -35,10 +41,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { isAuthenticated } = await import('@/lib/auth');
+    if (!(await isAuthenticated())) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     await connectDB();
     const { id } = await params;
+    const cleanId = String(id);
 
-    const deleted = await ProjectModel.findOneAndDelete({ id }).lean();
+    const deleted = await ProjectModel.findOneAndDelete({ id: cleanId }).lean();
     if (!deleted) {
       return Response.json({ error: 'Project not found' }, { status: 404 });
     }

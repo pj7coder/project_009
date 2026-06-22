@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useStoneContext } from '@/context/StoneContext';
 import { Product, Project, Blog } from '@/data/stoneData';
-import { Plus, Edit2, Trash2, Save, X, Download, Upload, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Download, Upload, Loader2, Lock, LogOut } from 'lucide-react';
 
 type ActiveTab = 'products' | 'projects' | 'blogs' | 'contact';
 
@@ -14,6 +14,23 @@ export default function Admin() {
     addProject, editProject, deleteProject,
     addBlog, editBlog, deleteBlog
   } = useStoneContext();
+
+  const [isAuth, setIsAuth] = useState<boolean | null>(null);
+  const [usernameInput, setUsernameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  React.useEffect(() => {
+    fetch('/api/auth/status')
+      .then((res) => res.json())
+      .then((data) => {
+        setIsAuth(data.authenticated);
+      })
+      .catch(() => {
+        setIsAuth(false);
+      });
+  }, []);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('products');
   const [showForm, setShowForm] = useState(false);
@@ -104,6 +121,42 @@ export default function Admin() {
     image: '',
     tags: ''
   });
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoggingIn(true);
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: usernameInput, password: passwordInput })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setLoginError(data.error || 'Invalid credentials');
+      } else {
+        setIsAuth(true);
+      }
+    } catch (err) {
+      setLoginError('Server error. Please try again.');
+    } finally {
+      setLoggingIn(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      setIsAuth(false);
+      setUsernameInput('');
+      setPasswordInput('');
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
 
   // Handle Form Open for Adding
   const handleAddNew = () => {
@@ -389,7 +442,7 @@ export default function Admin() {
     }
   };
 
-  if (loading) {
+  if (isAuth === null || loading) {
     return (
       <div style={{
         minHeight: '60vh',
@@ -409,12 +462,160 @@ export default function Admin() {
     );
   }
 
+  if (!isAuth) {
+    return (
+      <div className="container fade-in" style={{
+        minHeight: '80vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem 1rem'
+      }}>
+        <div className="glass-panel" style={{
+          width: '100%',
+          maxWidth: '420px',
+          padding: '3rem 2.5rem',
+          borderRadius: '8px',
+          border: '1px solid var(--border-color)',
+          boxShadow: 'var(--shadow-premium)',
+          background: 'rgba(28, 27, 24, 0.85)',
+          backdropFilter: 'blur(10px)',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            background: 'var(--border-light)',
+            color: 'var(--gold)',
+            marginBottom: '1.5rem',
+            border: '1px solid var(--border-color)'
+          }}>
+            <Lock size={28} />
+          </div>
+
+          <h3 style={{
+            fontSize: '1.8rem',
+            color: 'var(--text-primary)',
+            fontFamily: 'var(--font-serif)',
+            marginBottom: '0.5rem'
+          }}>
+            Admin Login
+          </h3>
+          <p style={{
+            fontSize: '0.85rem',
+            color: 'var(--text-muted)',
+            marginBottom: '2rem',
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase'
+          }}>
+            PJ Stones Management Console
+          </p>
+
+          {loginError && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              color: '#ef4444',
+              padding: '0.8rem',
+              borderRadius: '4px',
+              fontSize: '0.85rem',
+              marginBottom: '1.5rem',
+              textAlign: 'left',
+              animation: 'fadeIn 0.3s ease'
+            }}>
+              ⚠️ {loginError}
+            </div>
+          )}
+
+          <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem', textAlign: 'left' }}>
+            <div className="form-group">
+              <label htmlFor="username" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.4rem', display: 'block' }}>Username</label>
+              <input
+                type="text"
+                id="username"
+                required
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                className="form-input"
+                placeholder="Enter username"
+                style={{ width: '100%', padding: '0.8rem 1rem' }}
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1rem' }}>
+              <label htmlFor="password" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.4rem', display: 'block' }}>Password</label>
+              <input
+                type="password"
+                id="password"
+                required
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                className="form-input"
+                placeholder="Enter password"
+                style={{ width: '100%', padding: '0.8rem 1rem' }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loggingIn}
+              className="btn-primary"
+              style={{
+                width: '100%',
+                padding: '1rem',
+                fontSize: '0.95rem',
+                fontWeight: 600,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                marginTop: '0.5rem'
+              }}
+            >
+              {loggingIn ? (
+                <>
+                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  Verifying...
+                </>
+              ) : (
+                'Sign In'
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container fade-in" style={{ padding: '4rem 2rem 6rem 2rem' }}>
       {/* Header */}
-      <div className="section-header" style={{ marginBottom: '3rem' }}>
-        <span className="subtitle">Management Console</span>
-        <h2>PJ Stones Admin Panel</h2>
+      <div className="section-header" style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1.5rem' }}>
+        <div>
+          <span className="subtitle">Management Console</span>
+          <h2 style={{ margin: 0 }}>PJ Stones Admin Panel</h2>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="btn-secondary"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.6rem 1.2rem',
+            fontSize: '0.85rem',
+            borderColor: 'rgba(255, 255, 255, 0.15)',
+            borderRadius: '4px'
+          }}
+        >
+          <LogOut size={14} /> Sign Out
+        </button>
       </div>
 
       {/* Info notification */}
