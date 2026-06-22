@@ -7,6 +7,8 @@ import { ArrowRight, ShieldCheck, Globe, Award, Sparkles, MessageSquare } from '
 
 export default function Home() {
   const { products, projects, contactInfo } = useStoneContext();
+  // Show first 6 products as featured
+  const featuredProducts = products.slice(0, 6);
 
   const stats = [
     { value: '15+', label: 'Countries Supplied' },
@@ -231,8 +233,8 @@ export default function Home() {
           </div>
 
           {/* Product Grid */}
-          <div className="stone-grid" style={{ marginTop: '3rem' }}>
-            {products.slice(0, 3).map((product) => (
+          <div className="stone-grid">
+            {featuredProducts.map((product) => (
               <div
                 key={product.id}
                 className="glass-panel"
