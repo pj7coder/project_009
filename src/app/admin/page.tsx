@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useStoneContext } from '@/context/StoneContext';
 import { Product, Project, Blog } from '@/data/stoneData';
-import { Plus, Edit2, Trash2, Save, X, Download, Upload, Loader2, Lock, LogOut } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Download, Upload, Loader2, Lock, LogOut, MapPin, Calendar, Box } from 'lucide-react';
 
 type ActiveTab = 'products' | 'projects' | 'blogs' | 'contact';
 
@@ -1502,24 +1502,92 @@ export default function Admin() {
                 ))}
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="stone-grid" style={{ marginTop: '1.5rem' }}>
                 {products.map((p) => (
-                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '1rem 1.5rem', borderRadius: '2px', border: '1px solid var(--border-light)', flexWrap: 'wrap', gap: '1rem' }} className="admin-item-row">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div
+                    key={p.id}
+                    className="glass-panel"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      height: '100%',
+                      overflow: 'hidden',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    {/* Image Frame */}
+                    <div style={{ height: '220px', overflow: 'hidden', position: 'relative' }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={p.images[0]} alt={p.name} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '2px' }} />
-                      <div>
-                        <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 600 }}>{p.name}</h4>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{p.category} — Origin: {p.origin}</span>
-                      </div>
+                      <img
+                        src={p.images[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80'}
+                        alt={p.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <span
+                        className="gold-tag"
+                        style={{
+                          position: 'absolute',
+                          top: '1rem',
+                          right: '1rem',
+                          background: 'var(--gold-gradient)',
+                          color: '#1c1b18',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '2px',
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {p.category}
+                      </span>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={() => handleEdit(p.id)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', display: 'inline-flex', gap: '0.3rem' }}>
-                        <Edit2 size={12} /> Edit
-                      </button>
-                      <button onClick={() => handleDelete(p.id, p.name)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', borderColor: 'rgba(255,0,0,0.3)', color: 'rgba(200,0,0,1)', display: 'inline-flex', gap: '0.3rem' }}>
-                        <Trash2 size={12} /> Delete
-                      </button>
+
+                    {/* Info Details */}
+                    <div style={{ padding: '1.2rem', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ marginBottom: '0.8rem' }}>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--gold)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                          Origin: {p.origin}
+                        </span>
+                        <h3 style={{ margin: '0.2rem 0 0.4rem 0', fontSize: '1.1rem', fontFamily: 'var(--font-serif)' }}>
+                          {p.name}
+                        </h3>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4, margin: 0, height: '40px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {p.description}
+                        </p>
+                      </div>
+
+                      <div style={{ marginTop: 'auto' }}>
+                        {/* Finishes */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.8rem' }}>
+                          {p.finishes.map((f) => (
+                            <span key={f} style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', color: 'var(--text-secondary)' }}>
+                              {f}
+                            </span>
+                          ))}
+                        </div>
+
+                        <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            Thickness: {p.thickness.join(', ')}
+                          </span>
+                          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                            <button
+                              onClick={() => handleEdit(p.id)}
+                              className="btn-secondary"
+                              style={{ flex: 1, padding: '0.5rem', fontSize: '0.75rem', display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: '0.3rem' }}
+                            >
+                              <Edit2 size={12} /> Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(p.id, p.name)}
+                              className="btn-secondary"
+                              style={{ flex: 1, padding: '0.5rem', fontSize: '0.75rem', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#ef4444', display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: '0.3rem' }}
+                            >
+                              <Trash2 size={12} /> Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1576,53 +1644,227 @@ export default function Admin() {
                 ))}
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {projects.map((p) => (
-                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '1rem 1.5rem', borderRadius: '2px', border: '1px solid var(--border-light)', flexWrap: 'wrap', gap: '1rem' }} className="admin-item-row">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={p.images[0]} alt={p.title} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '2px' }} />
-                      <div>
-                        <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 600 }}>{p.title}</h4>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{p.category} — {p.location} ({p.year})</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem', marginTop: '1.5rem' }}>
+                {projects.map((p, index) => {
+                  const isEven = index % 2 === 0;
+                  return (
+                    <div
+                      key={p.id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                        gap: '2.5rem',
+                        alignItems: 'center',
+                        borderBottom: '1px solid var(--border-light)',
+                        paddingBottom: '2.5rem',
+                      }}
+                      className="project-row"
+                    >
+                      {/* Left/Right swapping depending on index for grid layout design */}
+                      <div
+                        style={{
+                          order: isEven ? 1 : 2,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '1.2rem',
+                        }}
+                        className="project-text-col"
+                      >
+                        <div>
+                          <span
+                            style={{
+                              color: 'var(--gold)',
+                              fontSize: '0.75rem',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.15em',
+                              fontWeight: 700,
+                              display: 'block',
+                              marginBottom: '0.3rem',
+                            }}
+                          >
+                            {p.category}
+                          </span>
+                          <h3 style={{ fontSize: '1.6rem', fontFamily: 'var(--font-serif)', color: 'var(--text-primary)', marginBottom: '0.3rem' }}>
+                            {p.title}
+                          </h3>
+                          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                              <MapPin size={12} style={{ color: 'var(--gold)' }} /> {p.location}
+                            </span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                              <Calendar size={12} style={{ color: 'var(--gold)' }} /> Completed: {p.year}
+                            </span>
+                          </div>
+                        </div>
+
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.5' }}>
+                          {p.description}
+                        </p>
+
+                        {/* Stones Used indicators */}
+                        <div>
+                          <span
+                            style={{
+                              fontSize: '0.7rem',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                              color: 'var(--text-muted)',
+                              display: 'block',
+                              marginBottom: '0.4rem',
+                            }}
+                          >
+                            Specified Stones Supplied:
+                          </span>
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            {p.stoneUsed.map((stone) => (
+                              <span
+                                key={stone}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.2rem',
+                                  fontSize: '0.75rem',
+                                  padding: '0.2rem 0.6rem',
+                                  background: 'var(--bg-secondary)',
+                                  border: '1px solid var(--border-color)',
+                                  borderRadius: '2px',
+                                  color: 'var(--text-primary)',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                <Box size={10} style={{ color: 'var(--gold)' }} />
+                                {stone}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem' }}>
+                          <button
+                            onClick={() => handleEdit(p.id)}
+                            className="btn-secondary"
+                            style={{ padding: '0.5rem 1.2rem', fontSize: '0.75rem', display: 'inline-flex', gap: '0.3rem' }}
+                          >
+                            <Edit2 size={12} /> Edit Project
+                          </button>
+                          <button
+                            onClick={() => handleDelete(p.id, p.title)}
+                            className="btn-secondary"
+                            style={{ padding: '0.5rem 1.2rem', fontSize: '0.75rem', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#ef4444', display: 'inline-flex', gap: '0.3rem' }}
+                          >
+                            <Trash2 size={12} /> Delete Project
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Image Side */}
+                      <div
+                        style={{
+                          order: isEven ? 2 : 1,
+                          position: 'relative',
+                          height: '280px',
+                          borderRadius: '4px',
+                          overflow: 'hidden',
+                          boxShadow: 'var(--shadow-premium)',
+                          border: '1px solid var(--border-color)',
+                        }}
+                        className="project-image-col"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={p.images[0] || 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80'}
+                          alt={p.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        {p.images.length > 1 && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              bottom: '0.8rem',
+                              right: '0.8rem',
+                              background: 'rgba(28,27,24,0.85)',
+                              border: '1px solid var(--border-color)',
+                              color: 'var(--gold-light)',
+                              fontSize: '0.65rem',
+                              padding: '0.2rem 0.5rem',
+                              borderRadius: '2px',
+                              textTransform: 'uppercase',
+                              fontWeight: 600,
+                            }}
+                          >
+                            +{p.images.length - 1} Detail Photos
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={() => handleEdit(p.id)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', display: 'inline-flex', gap: '0.3rem' }}>
-                        <Edit2 size={12} /> Edit
-                      </button>
-                      <button onClick={() => handleDelete(p.id, p.title)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', borderColor: 'rgba(255,0,0,0.3)', color: 'rgba(200,0,0,1)', display: 'inline-flex', gap: '0.3rem' }}>
-                        <Trash2 size={12} /> Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
           {/* 3. Blogs List */}
           {activeTab === 'blogs' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="stone-grid" style={{ marginTop: '1.5rem' }}>
               {blogs.map((b) => (
-                <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '1rem 1.5rem', borderRadius: '2px', border: '1px solid var(--border-light)', flexWrap: 'wrap', gap: '1rem' }} className="admin-item-row">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <article
+                  key={b.id}
+                  className="glass-panel"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    borderRadius: '4px',
+                    overflow: 'hidden',
+                    border: '1px solid var(--border-color)',
+                    height: '100%',
+                  }}
+                >
+                  <div style={{ height: '180px', overflow: 'hidden', position: 'relative' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={b.image} alt={b.title} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '2px' }} />
-                    <div>
-                      <h4 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: 600 }}>{b.title}</h4>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>By {b.author} — {b.date}</span>
+                    <img
+                      src={b.image || 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=80'}
+                      alt={b.title}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </div>
+                  <div style={{ padding: '1.2rem', flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>
+                      <span>{b.date}</span>
+                      <span>By {b.author}</span>
+                    </div>
+                    <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontFamily: 'var(--font-serif)', lineHeight: 1.3 }}>
+                      {b.title}
+                    </h3>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4, marginBottom: '1rem', height: '36px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                      {b.summary}
+                    </p>
+                    <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                      <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                        {b.tags.map((tag) => (
+                          <span key={tag} style={{ fontSize: '0.65rem', color: 'var(--gold)', background: 'rgba(188,163,116,0.05)', padding: '0.15rem 0.4rem', borderRadius: '2px' }}>
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.8rem', display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          onClick={() => handleEdit(b.id)}
+                          className="btn-secondary"
+                          style={{ flex: 1, padding: '0.5rem', fontSize: '0.75rem', display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <Edit2 size={12} /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(b.id, b.title)}
+                          className="btn-secondary"
+                          style={{ flex: 1, padding: '0.5rem', fontSize: '0.75rem', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#ef4444', display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <Trash2 size={12} /> Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button onClick={() => handleEdit(b.id)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', display: 'inline-flex', gap: '0.3rem' }}>
-                      <Edit2 size={12} /> Edit
-                    </button>
-                    <button onClick={() => handleDelete(b.id, b.title)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', borderColor: 'rgba(255,0,0,0.3)', color: 'rgba(200,0,0,1)', display: 'inline-flex', gap: '0.3rem' }}>
-                      <Trash2 size={12} /> Delete
-                    </button>
-                  </div>
-                </div>
+                </article>
               ))}
             </div>
           )}

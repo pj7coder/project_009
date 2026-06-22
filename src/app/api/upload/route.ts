@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
+import { writeFile, mkdir, appendFile } from 'fs/promises';
 import { join } from 'path';
 
 
@@ -41,6 +41,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: fileUrl });
   } catch (error) {
     console.error('[API/upload POST]', error);
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errStack = error instanceof Error ? error.stack : '';
+    try {
+      await appendFile(
+        join(process.cwd(), 'upload_errors.log'),
+        `[${new Date().toISOString()}] ${errMsg}\nStack: ${errStack}\n\n`
+      );
+    } catch (logErr) {
+      // Ignore log write errors
+    }
+    return NextResponse.json({ error: `Upload failed: ${errMsg}` }, { status: 500 });
   }
 }
